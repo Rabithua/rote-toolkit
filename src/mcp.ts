@@ -21,18 +21,22 @@ export async function startMcpServer(): Promise<void> {
         title: z.string().optional().describe("Optional note title"),
         tags: z.array(z.string()).optional().describe("Optional list of tags"),
         state: z.string().optional().describe("Note state, default private"),
+        type: z.string().optional().describe("Note type, default rote"),
+        pin: z.boolean().optional().describe("Whether to pin the note"),
         articleId: z
           .string()
           .optional()
           .describe("Optional article ID to bind to"),
       },
     },
-    async ({ content, title, tags, state, articleId }) => {
+    async ({ content, title, tags, state, type, pin, articleId }) => {
       const note = await client.createNote({
         content,
         title,
         tags,
         state,
+        type,
+        pin,
         articleId,
       });
       return {
@@ -203,10 +207,18 @@ export async function startMcpServer(): Promise<void> {
           .min(0)
           .optional()
           .describe("Pagination offset, default 0"),
+        archived: z.boolean().optional().describe("Include archived notes"),
+        tag: z.array(z.string()).optional().describe("Tag filter"),
       },
     },
-    async ({ keyword, limit, skip }) => {
-      const notes = await client.searchNotes({ keyword, limit, skip });
+    async ({ keyword, limit, skip, archived, tag }) => {
+      const notes = await client.searchNotes({
+        keyword,
+        limit,
+        skip,
+        archived,
+        tag,
+      });
       const lines = notes.map(
         (note, i) => `${i + 1}. ${truncateSingleLine(note.content, 100)}`,
       );
@@ -239,10 +251,12 @@ export async function startMcpServer(): Promise<void> {
           .min(0)
           .optional()
           .describe("Pagination offset, default 0"),
+        archived: z.boolean().optional().describe("Include archived notes"),
+        tag: z.array(z.string()).optional().describe("Tag filter"),
       },
     },
-    async ({ limit, skip }) => {
-      const notes = await client.listNotes({ limit, skip });
+    async ({ limit, skip, archived, tag }) => {
+      const notes = await client.listNotes({ limit, skip, archived, tag });
       const lines = notes.map(
         (note, i) => `${i + 1}. ${truncateSingleLine(note.content, 100)}`,
       );

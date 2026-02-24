@@ -21,7 +21,7 @@ npm install -g rote-toolkit
 运行以下命令进行全局配置：
 
 ```bash
-rote login
+rote config
 ```
 
 系统会提示你输入：

@@ -61,6 +61,12 @@ export class RoteClient {
       limit: String(input.limit ?? 10),
       skip: String(input.skip ?? 0),
     });
+    if (input.archived !== undefined) {
+      params.set("archived", String(input.archived));
+    }
+    if (input.tag) {
+      input.tag.forEach((t) => params.append("tag", t));
+    }
 
     return this.request<RoteNote[]>(
       `/v2/api/openkey/notes/search?${params.toString()}`,
@@ -73,6 +79,12 @@ export class RoteClient {
       limit: String(input.limit ?? 10),
       skip: String(input.skip ?? 0),
     });
+    if (input.archived !== undefined) {
+      params.set("archived", String(input.archived));
+    }
+    if (input.tag) {
+      input.tag.forEach((t) => params.append("tag", t));
+    }
 
     return this.request<RoteNote[]>(
       `/v2/api/openkey/notes?${params.toString()}`,

@@ -26,14 +26,14 @@ export function saveConfig(config: ToolkitConfig): void {
 
 export function loadConfig(): ToolkitConfig {
   if (!existsSync(CONFIG_PATH)) {
-    throw new Error(`Config not found at ${CONFIG_PATH}. Run "rote login" first.`);
+    throw new Error(`Config not found at ${CONFIG_PATH}. Run "rote config" first.`);
   }
 
   const raw = readFileSync(CONFIG_PATH, 'utf8');
   const parsed = JSON.parse(raw) as Partial<ToolkitConfig>;
 
   if (!parsed.apiUrl || !parsed.openKey) {
-    throw new Error(`Invalid config at ${CONFIG_PATH}. Run "rote login" again.`);
+    throw new Error(`Invalid config at ${CONFIG_PATH}. Run "rote config" again.`);
   }
 
   return {

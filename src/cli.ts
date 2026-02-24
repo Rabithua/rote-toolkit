@@ -12,7 +12,8 @@ const program = new Command();
 program.name("rote").description("Rote Toolkit CLI").version("0.1.0");
 
 program
-  .command("login")
+  .command("config")
+  .alias("login")
   .description("Configure Rote API URL and OpenKey")
   .action(async () => {
     const rl = createInterface({ input, output });
@@ -33,6 +34,8 @@ program
   .option("-t, --tags <tags>", "comma-separated tags")
   .option("--title <title>", "title")
   .option("--state <state>", "note state", "private")
+  .option("--type <type>", "note type", "rote")
+  .option("--pin", "pin the note")
   .option("--article-id <articleId>", "bind to an existing article")
   .action(
     async (
@@ -41,6 +44,8 @@ program
         tags?: string;
         title?: string;
         state?: string;
+        type: string;
+        pin?: boolean;
         articleId?: string;
       },
     ) => {
@@ -51,6 +56,8 @@ program
         tags,
         title: options.title,
         state: options.state,
+        type: options.type,
+        pin: options.pin,
         articleId: options.articleId,
       });
 
@@ -136,15 +143,56 @@ program
   .argument("<keyword>", "search keyword")
   .option("-l, --limit <limit>", "max results", parseInt, 10)
   .option("-s, --skip <skip>", "offset", parseInt, 0)
-  .action(async (keyword: string, options: { limit: number; skip: number }) => {
-    const client = new RoteClient();
-    const notes = await client.searchNotes({
-      keyword,
-      limit: options.limit,
-      skip: options.skip,
-    });
-    printNotes(notes);
-  });
+  .option("--archived", "include archived notes")
+  .option("-t, --tag <tags>", "comma-separated tags to filter by")
+  .action(
+    async (
+      keyword: string,
+      options: {
+        limit: number;
+        skip: number;
+        archived?: boolean;
+        tag?: string;
+      },
+    ) => {
+      const client = new RoteClient();
+      const tag = parseTags(options.tag);
+      const notes = await client.searchNotes({
+        keyword,
+        limit: options.limit,
+        skip: options.skip,
+        archived: options.archived,
+        tag: tag.length > 0 ? tag : undefined,
+      });
+      printNotes(notes);
+    },
+  );
+
+program
+  .command("list")
+  .description("List recent notes")
+  .option("-l, --limit <limit>", "max results", parseInt, 10)
+  .option("-s, --skip <skip>", "offset", parseInt, 0)
+  .option("--archived", "include archived notes")
+  .option("-t, --tag <tags>", "comma-separated tags to filter by")
+  .action(
+    async (options: {
+      limit: number;
+      skip: number;
+      archived?: boolean;
+      tag?: string;
+    }) => {
+      const client = new RoteClient();
+      const tag = parseTags(options.tag);
+      const notes = await client.listNotes({
+        limit: options.limit,
+        skip: options.skip,
+        archived: options.archived,
+        tag: tag.length > 0 ? tag : undefined,
+      });
+      printNotes(notes);
+    },
+  );
 
 program
   .command("mcp")

@@ -96,9 +96,13 @@ export interface SearchNotesInput {
   keyword: string;
   limit?: number;
   skip?: number;
+  archived?: boolean;
+  tag?: string[];
 }
 
 export interface ListNotesInput {
   limit?: number;
   skip?: number;
+  archived?: boolean;
+  tag?: string[];
 }
