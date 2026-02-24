@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { getConfigPath, saveConfig } from "./config.js";
@@ -8,8 +9,12 @@ import { printNotes } from "./output.js";
 import { startMcpServer } from "./mcp.js";
 
 const program = new Command();
+const packageJson = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version?: string };
+const cliVersion = packageJson.version ?? "0.0.0";
 
-program.name("rote").description("Rote Toolkit CLI").version("0.1.0");
+program.name("rote").description("Rote Toolkit CLI").version(cliVersion);
 
 program
   .command("config")
