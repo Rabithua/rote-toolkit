@@ -9,7 +9,6 @@ export interface RoteNote {
   title?: string;
   tags?: string[];
   state?: string;
-  type?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -24,8 +23,7 @@ export interface CreateNoteInput {
   content: string;
   title?: string;
   tags?: string[];
-  state?: string;
-  type?: string;
+  isPublic?: boolean;
   pin?: boolean;
   articleId?: string;
 }

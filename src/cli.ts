@@ -33,8 +33,7 @@ program
   .argument("<content>", "note content")
   .option("-t, --tags <tags>", "comma-separated tags")
   .option("--title <title>", "title")
-  .option("--state <state>", "note state", "private")
-  .option("--type <type>", "note type", "rote")
+  .option("--public", "publish as public note")
   .option("--pin", "pin the note")
   .option("--article-id <articleId>", "bind to an existing article")
   .action(
@@ -43,8 +42,7 @@ program
       options: {
         tags?: string;
         title?: string;
-        state?: string;
-        type: string;
+        public?: boolean;
         pin?: boolean;
         articleId?: string;
       },
@@ -55,8 +53,7 @@ program
         content,
         tags,
         title: options.title,
-        state: options.state,
-        type: options.type,
+        isPublic: options.public,
         pin: options.pin,
         articleId: options.articleId,
       });
@@ -105,11 +102,19 @@ program
   .argument("<action>", "action to perform (get|update)")
   .option("--nickname <nickname>", "new nickname")
   .option("--description <description>", "new description")
+  .option("--avatar <url>", "new avatar URL")
+  .option("--cover <url>", "new cover URL")
   .option("--username <username>", "new username")
   .action(
     async (
       action: string,
-      options: { nickname?: string; description?: string; username?: string },
+      options: {
+        nickname?: string;
+        description?: string;
+        avatar?: string;
+        cover?: string;
+        username?: string;
+      },
     ) => {
       const client = new RoteClient();
       if (action === "get") {
@@ -119,6 +124,8 @@ program
         const profile = await client.updateProfile({
           nickname: options.nickname,
           description: options.description,
+          avatar: options.avatar,
+          cover: options.cover,
           username: options.username,
         });
         console.log(`Updated profile for: ${profile.username}`);

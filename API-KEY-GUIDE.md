@@ -46,7 +46,6 @@ When generating or updating an API Key, you can specify which permissions it sho
   "content": "Note content (required, max 1,000,000 characters)",
   "title": "Optional title (max 200 characters)",
   "state": "private|public",
-  "type": "rote|article|other",
   "tags": ["tag1", "tag2"], // Each tag max 50 characters, max 20 tags
   "pin": false,
   "articleId": "optional-article-uuid" // Bind to an existing article
@@ -64,7 +63,6 @@ When generating or updating an API Key, you can specify which permissions it sho
     "content": "Note content",
     "title": "Optional title",
     "state": "private",
-    "type": "rote",
     "tags": ["tag1", "tag2"],
     "pin": false,
     "authorid": "user_id",
@@ -85,7 +83,6 @@ When generating or updating an API Key, you can specify which permissions it sho
 - `openkey`: YOUR_API_KEY (Required)
 - `content`: Note content (required, max 1,000,000 characters)
 - `state`: Note state (private or public, defaults to private)
-- `type`: Note type (defaults to "Rote")
 - `title`: Optional title
 - `tag`: Tags (can be multiple, e.g., `tag=tag1&tag=tag2`, each tag max 50 characters, max 20 tags)
 - `pin`: Whether to pin the note (true/false)
@@ -159,7 +156,6 @@ When generating or updating an API Key, you can specify which permissions it sho
       "content": "Note content 1",
       "title": "Note title 1",
       "state": "private",
-      "type": "rote",
       "tags": ["tag1"],
       "pin": false,
       "authorid": "user_id",
@@ -171,7 +167,6 @@ When generating or updating an API Key, you can specify which permissions it sho
       "content": "Note content 2",
       "title": "Note title 2",
       "state": "private",
-      "type": "rote",
       "tags": ["tag2"],
       "pin": true,
       "authorid": "user_id",

@@ -25,6 +25,7 @@ rote config
 ```
 
 系统会提示你输入：
+
 1. **Rote API URL**：例如 `https://your-rote-domain.com`
 2. **OpenKey**：你的 API 密钥
 
@@ -38,16 +39,24 @@ rote config
 rote add "今天学到了 MCP 协议，非常有趣！"
 ```
 
-附带标签：
+附带标签、设为公开并置顶：
 
 ```bash
-rote add "实现了一个新的前端组件" -t "代码,前端,React"
+rote add "实现了一个新的前端组件" -t "代码,前端,React" --public --pin
 ```
 
-### 2) 搜索笔记
+### 2) 搜索和获取笔记
+
+搜索包含 "MCP" 的笔记：
 
 ```bash
 rote search "MCP"
+```
+
+获取最近的笔记（支持过滤归档和标签）：
+
+```bash
+rote list --limit 5 --archived -t "知识管理"
 ```
 
 ## MCP 模式使用指南
@@ -71,11 +80,7 @@ rote-mcp
   "mcpServers": {
     "rote-toolkit": {
       "command": "npx",
-      "args": [
-        "-y",
-        "rote-toolkit",
-        "mcp"
-      ]
+      "args": ["-y", "rote-toolkit", "mcp"]
     }
   }
 }
@@ -88,7 +93,9 @@ rote-mcp
 - `rote_list_notes`
 
 ## 本地开发
+
 [text](../../../Downloads/API-KEY-GUIDE.md)
+
 ```bash
 npm install
 npm run build
@@ -117,6 +124,7 @@ npm run release:major
 ```
 
 发布脚本会执行：
+
 1. 检查 git 工作区是否干净
 2. 检查 npm 登录状态
 3. `npm run build`

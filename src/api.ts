@@ -37,8 +37,7 @@ export class RoteClient {
       content: input.content,
       title: input.title ?? "",
       tags: input.tags ?? [],
-      state: input.state ?? "private",
-      type: input.type ?? "rote",
+      state: input.isPublic ? "public" : "private",
       pin: input.pin ?? false,
       ...(input.articleId ? { articleId: input.articleId } : {}),
     };

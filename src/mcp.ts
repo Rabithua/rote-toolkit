@@ -20,8 +20,7 @@ export async function startMcpServer(): Promise<void> {
         content: z.string().min(1).describe("Note content"),
         title: z.string().optional().describe("Optional note title"),
         tags: z.array(z.string()).optional().describe("Optional list of tags"),
-        state: z.string().optional().describe("Note state, default private"),
-        type: z.string().optional().describe("Note type, default rote"),
+        isPublic: z.boolean().optional().describe("Publish as public note"),
         pin: z.boolean().optional().describe("Whether to pin the note"),
         articleId: z
           .string()
@@ -29,13 +28,12 @@ export async function startMcpServer(): Promise<void> {
           .describe("Optional article ID to bind to"),
       },
     },
-    async ({ content, title, tags, state, type, pin, articleId }) => {
+    async ({ content, title, tags, isPublic, pin, articleId }) => {
       const note = await client.createNote({
         content,
         title,
         tags,
-        state,
-        type,
+        isPublic,
         pin,
         articleId,
       });
