@@ -29,6 +29,14 @@
     "mcp",
     "openkey"
   ],
+  "homepage": "https://github.com/Rabithua/rote-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/Rabithua/rote-toolkit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rabithua/rote-toolkit.git"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=18"
