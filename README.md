@@ -94,3 +94,32 @@ npm install
 npm run build
 npm run dev -- --help
 ```
+
+## 发布到 npm
+
+首次发布前先登录：
+
+```bash
+npm login
+```
+
+自动构建 + 自动升级版本 + 发布：
+
+```bash
+npm run release:patch
+```
+
+也支持：
+
+```bash
+npm run release:minor
+npm run release:major
+```
+
+发布脚本会执行：
+1. 检查 git 工作区是否干净
+2. 检查 npm 登录状态
+3. `npm run build`
+4. `npm pack --dry-run`
+5. `npm version <patch|minor|major>`
+6. `npm publish`
