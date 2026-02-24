@@ -1,0 +1,41 @@
+{
+  "name": "rote-toolkit",
+  "version": "0.1.0",
+  "description": "CLI and MCP toolkit for Rote OpenKey API",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "rote": "dist/cli.js",
+    "rote-mcp": "dist/mcp-standalone.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "mcp": "tsx src/mcp-standalone.ts",
+    "start": "node dist/cli.js"
+  },
+  "keywords": [
+    "rote",
+    "cli",
+    "mcp",
+    "openkey"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "commander": "^14.0.1",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}
