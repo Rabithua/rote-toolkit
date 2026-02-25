@@ -14,6 +14,7 @@ import type {
   RoteReaction,
   SearchNotesInput,
   ToolkitConfig,
+  UpdateNoteInput,
   UpdateProfileInput,
 } from "./types.js";
 
@@ -47,6 +48,72 @@ export class RoteClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+  }
+
+  async updateNote(input: UpdateNoteInput): Promise<RoteNote> {
+    const noteId = input.noteId?.trim();
+    if (!noteId) {
+      throw new Error("noteId is required");
+    }
+
+    const hasUpdates =
+      input.content !== undefined ||
+      input.title !== undefined ||
+      input.tags !== undefined ||
+      input.isPublic !== undefined ||
+      input.pin !== undefined ||
+      input.archived !== undefined ||
+      input.articleId !== undefined;
+    if (!hasUpdates) {
+      throw new Error("at least one field to update is required");
+    }
+
+    const body: Record<string, unknown> = {
+      openkey: this.openKey,
+    };
+    if (input.content !== undefined) {
+      body.content = input.content;
+    }
+    if (input.title !== undefined) {
+      body.title = input.title;
+    }
+    if (input.tags !== undefined) {
+      body.tags = input.tags;
+    }
+    if (input.isPublic !== undefined) {
+      body.state = input.isPublic ? "public" : "private";
+    }
+    if (input.pin !== undefined) {
+      body.pin = input.pin;
+    }
+    if (input.archived !== undefined) {
+      body.archived = input.archived;
+    }
+    if (input.articleId !== undefined) {
+      body.articleId = input.articleId;
+    }
+
+    return this.request<RoteNote>(
+      `/v2/api/openkey/notes/${encodeURIComponent(noteId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
+  async deleteNote(noteId: string): Promise<unknown> {
+    const resolved = noteId?.trim();
+    if (!resolved) {
+      throw new Error("noteId is required");
+    }
+
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<unknown>(
+      `/v2/api/openkey/notes/${encodeURIComponent(resolved)}?${params.toString()}`,
+      { method: "DELETE" },
+    );
   }
 
   async searchNotes(input: SearchNotesInput): Promise<RoteNote[]> {

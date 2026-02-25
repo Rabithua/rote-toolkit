@@ -49,6 +49,70 @@ export async function startMcpServer(): Promise<void> {
   );
 
   server.registerTool(
+    "rote_update_note",
+    {
+      description: "Update an existing note in Rote via OpenKey API.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Note ID"),
+        content: z.string().optional().describe("Updated note content"),
+        title: z.string().optional().describe("Updated note title"),
+        tags: z.array(z.string()).optional().describe("Updated list of tags"),
+        isPublic: z
+          .boolean()
+          .optional()
+          .describe("Set note visibility (public/private)"),
+        pin: z.boolean().optional().describe("Whether to pin the note"),
+        archived: z.boolean().optional().describe("Whether to archive the note"),
+        articleId: z
+          .string()
+          .optional()
+          .describe("Optional article ID to bind to"),
+      },
+    },
+    async ({ noteId, content, title, tags, isPublic, pin, archived, articleId }) => {
+      const note = await client.updateNote({
+        noteId,
+        content,
+        title,
+        tags,
+        isPublic,
+        pin,
+        archived,
+        articleId,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Updated note ${note.id}: ${truncateSingleLine(note.content, 100)}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_delete_note",
+    {
+      description: "Delete a note in Rote via OpenKey API.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Note ID"),
+      },
+    },
+    async ({ noteId }) => {
+      await client.deleteNote(noteId);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Deleted note ${noteId}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
     "rote_create_article",
     {
       description: "Create an article in Rote via OpenKey API.",

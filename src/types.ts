@@ -28,6 +28,17 @@ export interface CreateNoteInput {
   articleId?: string;
 }
 
+export interface UpdateNoteInput {
+  noteId: string;
+  content?: string;
+  title?: string;
+  tags?: string[];
+  isPublic?: boolean;
+  pin?: boolean;
+  archived?: boolean;
+  articleId?: string;
+}
+
 export interface RoteArticle {
   id: string;
   content: string;
