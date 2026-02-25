@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
+    "rote-toolkit": "dist/cli.js",
     "rote": "dist/cli.js",
     "rote-mcp": "dist/mcp-standalone.js"
   },

@@ -73,14 +73,27 @@ rote mcp
 rote-mcp
 ```
 
-### Claude Desktop 配置示例
+### Claude Desktop / VS Code 配置示例（推荐）
 
 ```json
 {
   "mcpServers": {
     "rote-toolkit": {
       "command": "npx",
-      "args": ["-y", "rote-toolkit", "mcp"]
+      "args": ["-y", "-p", "rote-toolkit@latest", "rote-mcp"]
+    }
+  }
+}
+```
+
+使用 Bun 也可以：
+
+```json
+{
+  "mcpServers": {
+    "rote-toolkit": {
+      "command": "bunx",
+      "args": ["-y", "rote-toolkit@latest", "rote-mcp"]
     }
   }
 }
