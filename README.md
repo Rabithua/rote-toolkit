@@ -73,7 +73,7 @@ rote mcp
 rote-mcp
 ```
 
-### Claude Desktop / VS Code 配置示例（推荐）
+### Claude Desktop 配置示例
 
 ```json
 {
@@ -86,14 +86,15 @@ rote-mcp
 }
 ```
 
-使用 Bun 也可以：
+### VS Code 配置示例
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "rote-toolkit": {
+      "type": "stdio",
       "command": "bunx",
-      "args": ["-y", "rote-toolkit@latest", "rote-mcp"]
+      "args": ["-y", "--package", "rote-toolkit@latest", "rote-mcp"]
     }
   }
 }
@@ -107,7 +108,7 @@ rote-mcp
 
 ## 本地开发
 
-[text](../../../Downloads/API-KEY-GUIDE.md)
+[API Key Usage Guide](./API-KEY-GUIDE.md)
 
 ```bash
 npm install
