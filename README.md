@@ -1,6 +1,6 @@
-# Rote Toolkit
-
 <p align="right">English | <a href="./README.zh-CN.md">中文</a></p>
+
+# Rote Toolkit
 
 Rote Toolkit is a TypeScript toolkit for connecting to and extending your [Rote](https://rote.ink) note system from terminal workflows and AI agents. It uses the Rote OpenKey API for simple, reusable authentication.
 

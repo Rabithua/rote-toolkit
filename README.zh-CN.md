@@ -1,6 +1,6 @@
-# Rote Toolkit
-
 <p align="right"><a href="./README.md">English</a> | 中文</p>
+
+# Rote Toolkit
 
 Rote Toolkit 是一个基于 TypeScript 的增强工具包，主要用于在终端或 AI Agents 侧连接和增强你的 [Rote](https://rote.ink) 笔记系统。基于 Rote OpenKey API 授权，即插即用，无需繁复的登录流程。
 
