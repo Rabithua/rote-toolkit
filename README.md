@@ -61,19 +61,33 @@ rote list --limit 5 --archived -t "知识管理"
 
 ## MCP 模式使用指南
 
-启动 MCP Server：
+### 是否需要提前安装？
+
+不需要。  
+在 VS Code / Claude Desktop 里使用 `npx` 或 `bunx` 配置时，会在启动 MCP Server 时自动下载并运行 `rote-toolkit`。
+
+仅当你希望本机直接运行命令时，才需要全局安装：
+
+```bash
+npm install -g rote-toolkit
+```
+
+### 1) 先完成凭证配置（一次即可）
+
+```bash
+rote config
+```
+
+### 2) 本机手动启动（可选，用于调试）
+
+以下两条命令等价：
 
 ```bash
 rote mcp
-```
-
-或独立命令：
-
-```bash
 rote-mcp
 ```
 
-### Claude Desktop 配置示例
+### 3) Claude Desktop 配置示例
 
 ```json
 {
@@ -86,7 +100,7 @@ rote-mcp
 }
 ```
 
-### VS Code 配置示例
+### 4) VS Code 配置示例
 
 ```json
 {
@@ -99,6 +113,16 @@ rote-mcp
   }
 }
 ```
+
+### 版本建议
+
+- 追踪最新版：`rote-toolkit@latest`
+- 需要稳定可复现：固定版本号，例如 `rote-toolkit@0.3.3`
+
+### 常见问题
+
+- 报错 `could not determine executable to run`：通常是 `npx` 参数写法不对，确认使用 `-p rote-toolkit@... rote-mcp`。
+- 报错 `unknown command 'rote-mcp'`（bunx）：需要 `--package`，例如 `bunx -y --package rote-toolkit@latest rote-mcp`。
 
 ### AI 可使用的能力 (Tools)
 
