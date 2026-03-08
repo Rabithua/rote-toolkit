@@ -1,6 +1,6 @@
 {
   "name": "rote-toolkit",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "CLI and MCP toolkit for Rote OpenKey API",
   "type": "module",
   "main": "dist/index.js",
