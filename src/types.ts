@@ -115,3 +115,8 @@ export interface ListNotesInput {
   archived?: boolean;
   tag?: string[];
 }
+
+export interface ExploreNotesInput {
+  limit?: number;
+  skip?: number;
+}

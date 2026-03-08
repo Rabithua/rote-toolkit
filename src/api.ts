@@ -4,6 +4,7 @@ import type {
   ApiEnvelope,
   CreateArticleInput,
   CreateNoteInput,
+  ExploreNotesInput,
   ListNotesInput,
   RemoveReactionInput,
   RemoveReactionResponse,
@@ -154,6 +155,17 @@ export class RoteClient {
 
     return this.request<RoteNote[]>(
       `/v2/api/openkey/notes?${params.toString()}`,
+    );
+  }
+
+  async exploreNotes(input: ExploreNotesInput = {}): Promise<RoteNote[]> {
+    const params = new URLSearchParams({
+      limit: String(input.limit ?? 20),
+      skip: String(input.skip ?? 0),
+    });
+
+    return this.request<RoteNote[]>(
+      `/v2/api/notes/public?${params.toString()}`,
     );
   }
 

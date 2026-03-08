@@ -207,6 +207,25 @@ program
   );
 
 program
+  .command("explore")
+  .description("List explore notes (no authentication required)")
+  .option("-l, --limit <limit>", "max results", parseInt, 20)
+  .option("-s, --skip <skip>", "offset", parseInt, 0)
+  .action(
+    async (options: {
+      limit: number;
+      skip: number;
+    }) => {
+      const client = new RoteClient();
+      const notes = await client.exploreNotes({
+        limit: options.limit,
+        skip: options.skip,
+      });
+      printNotes(notes);
+    },
+  );
+
+program
   .command("mcp")
   .description("Start MCP server over stdio")
   .action(async () => {

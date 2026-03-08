@@ -63,6 +63,12 @@ rote search "MCP"
 rote list --limit 5 --archived -t "知识管理"
 ```
 
+获取探索页面的笔记（无需配置 OpenKey）：
+
+```bash
+rote explore --limit 5
+```
+
 ## MCP 模式使用指南
 
 ### 是否需要提前安装？
@@ -135,6 +141,7 @@ rote-mcp
 - `rote_delete_note`
 - `rote_search_notes`
 - `rote_list_notes`
+- `rote_explore_notes`
 
 ## 本地开发
 

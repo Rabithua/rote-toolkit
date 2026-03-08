@@ -63,6 +63,12 @@ List recent notes (with archive/tag filters):
 rote list --limit 5 --archived -t "knowledge"
 ```
 
+List explore notes (no auth required):
+
+```bash
+rote explore --limit 5
+```
+
 ## MCP Usage
 
 ### Do I need pre-installation?
@@ -135,6 +141,7 @@ rote-mcp
 - `rote_delete_note`
 - `rote_search_notes`
 - `rote_list_notes`
+- `rote_explore_notes`
 
 ## Local Development
 

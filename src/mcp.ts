@@ -333,6 +333,42 @@ export async function startMcpServer(): Promise<void> {
     },
   );
 
+  server.registerTool(
+    "rote_explore_notes",
+    {
+      description: "Get explore notes in Rote (no authentication required).",
+      inputSchema: {
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .optional()
+          .describe("Max results, default 20"),
+        skip: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("Pagination offset, default 0"),
+      },
+    },
+    async ({ limit, skip }) => {
+      const notes = await client.exploreNotes({ limit, skip });
+      const lines = notes.map(
+        (note, i) => `${i + 1}. ${truncateSingleLine(note.content, 100)}`,
+      );
+      return {
+        content: [
+          {
+             type: "text",
+             text: lines.length > 0 ? lines.join("\n") : "No explore notes found.",
+          },
+        ],
+      };
+    },
+  );
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
