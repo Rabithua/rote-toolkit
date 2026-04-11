@@ -120,3 +120,64 @@ export interface ExploreNotesInput {
   limit?: number;
   skip?: number;
 }
+
+// New types for extended OpenKey API
+
+export interface ListArticlesInput {
+  limit?: number;
+  skip?: number;
+  keyword?: string;
+}
+
+export interface RoteArticleWithMeta extends RoteArticle {
+  title?: string;
+  summary?: string;
+}
+
+export interface BatchGetNotesInput {
+  ids: string[];
+}
+
+export interface RoteTag {
+  tag: string;
+  count: number;
+}
+
+export interface GetHeatmapInput {
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+}
+
+export interface HeatmapDay {
+  date: string;
+  count: number;
+}
+
+export interface RoteStatistics {
+  noteCount: number;
+  attachmentCount: number;
+}
+
+export interface RoteSettings {
+  allowExplore?: boolean;
+  [key: string]: unknown;
+}
+
+export interface UpdateSettingsInput {
+  allowExplore?: boolean;
+  [key: string]: unknown;
+}
+
+export interface BatchDeleteAttachmentsInput {
+  ids: string[];
+}
+
+export interface BatchDeleteAttachmentsResponse {
+  deleted: number;
+  failed: number;
+}
+
+export interface UpdateAttachmentsSortOrderInput {
+  noteId: string;
+  attachmentIds: string[];
+}

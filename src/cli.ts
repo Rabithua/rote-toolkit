@@ -225,6 +225,111 @@ program
     },
   );
 
+// --- New Extended OpenKey API Commands ---
+
+program
+  .command("articles")
+  .description("List user articles")
+  .option("-l, --limit <limit>", "max results", parseInt, 20)
+  .option("-s, --skip <skip>", "offset", parseInt, 0)
+  .option("-k, --keyword <keyword>", "search keyword")
+  .action(
+    async (options: {
+      limit: number;
+      skip: number;
+      keyword?: string;
+    }) => {
+      const client = new RoteClient();
+      const articles = await client.listArticles({
+        limit: options.limit,
+        skip: options.skip,
+        keyword: options.keyword,
+      });
+      if (articles.length === 0) {
+        console.log("No articles found.");
+        return;
+      }
+      articles.forEach((article, i) => {
+        console.log(
+          `${i + 1}. [${article.id}] ${article.title || article.content.slice(0, 80)}`,
+        );
+      });
+    },
+  );
+
+program
+  .command("tags")
+  .description("Get tag usage statistics")
+  .action(async () => {
+    const client = new RoteClient();
+    const tags = await client.getTags();
+    if (tags.length === 0) {
+      console.log("No tags found.");
+      return;
+    }
+    tags.forEach((t) => console.log(`${t.tag}: ${t.count}`));
+  });
+
+program
+  .command("heatmap")
+  .description("Get activity heatmap")
+  .requiredOption("--start <date>", "start date (YYYY-MM-DD)")
+  .requiredOption("--end <date>", "end date (YYYY-MM-DD)")
+  .action(async (options: { start: string; end: string }) => {
+    const client = new RoteClient();
+    const heatmap = await client.getHeatmap({
+      startDate: options.start,
+      endDate: options.end,
+    });
+    if (heatmap.length === 0) {
+      console.log("No activity in this range.");
+      return;
+    }
+    heatmap.forEach((d) => console.log(`${d.date}: ${d.count} notes`));
+  });
+
+program
+  .command("stats")
+  .description("Get user statistics")
+  .action(async () => {
+    const client = new RoteClient();
+    const stats = await client.getStatistics();
+    console.log(`Notes: ${stats.noteCount}`);
+    console.log(`Attachments: ${stats.attachmentCount}`);
+  });
+
+program
+  .command("settings")
+  .description("Get or update user settings")
+  .argument("[action]", "action to perform (get|update)", "get")
+  .option("--allow-explore <value>", "allow public notes in explore (true/false)")
+  .action(
+    async (
+      action: string,
+      options: {
+        allowExplore?: string;
+      },
+    ) => {
+      const client = new RoteClient();
+      if (action === "get") {
+        const settings = await client.getSettings();
+        console.log(JSON.stringify(settings, null, 2));
+      } else if (action === "update") {
+        const allowExplore =
+          options.allowExplore === "true"
+            ? true
+            : options.allowExplore === "false"
+              ? false
+              : undefined;
+        const settings = await client.updateSettings({ allowExplore });
+        console.log("Settings updated:");
+        console.log(JSON.stringify(settings, null, 2));
+      } else {
+        console.error("Invalid action. Use 'get' or 'update'.");
+      }
+    },
+  );
+
 program
   .command("mcp")
   .description("Start MCP server over stdio")

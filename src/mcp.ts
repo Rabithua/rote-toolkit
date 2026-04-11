@@ -361,8 +361,252 @@ export async function startMcpServer(): Promise<void> {
       return {
         content: [
           {
-             type: "text",
-             text: lines.length > 0 ? lines.join("\n") : "No explore notes found.",
+            type: "text",
+            text: lines.length > 0 ? lines.join("\n") : "No explore notes found.",
+          },
+        ],
+      };
+    },
+  );
+
+  // --- New Extended OpenKey API Tools ---
+
+  server.registerTool(
+    "rote_list_articles",
+    {
+      description: "List user articles in Rote.",
+      inputSchema: {
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .optional()
+          .describe("Max results, default 20"),
+        skip: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("Pagination offset, default 0"),
+        keyword: z.string().optional().describe("Search keyword"),
+      },
+    },
+    async ({ limit, skip, keyword }) => {
+      const articles = await client.listArticles({ limit, skip, keyword });
+      const lines = articles.map(
+        (article, i) =>
+          `${i + 1}. [${article.id}] ${article.title || truncateSingleLine(article.content, 80)}`,
+      );
+      return {
+        content: [
+          {
+            type: "text",
+            text: lines.length > 0 ? lines.join("\n") : "No articles found.",
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_get_article_by_note",
+    {
+      description: "Get article linked to a note.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Note ID"),
+      },
+    },
+    async ({ noteId }) => {
+      const article = await client.getArticleByNoteId(noteId);
+      if (!article) {
+        return {
+          content: [{ type: "text", text: "No article linked to this note." }],
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Article ${article.id}:\n${truncateSingleLine(article.content, 200)}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_batch_get_notes",
+    {
+      description: "Batch get multiple notes by IDs (max 100).",
+      inputSchema: {
+        ids: z.array(z.string()).min(1).max(100).describe("Array of note IDs"),
+      },
+    },
+    async ({ ids }) => {
+      const notes = await client.batchGetNotes({ ids });
+      const lines = notes.map(
+        (note, i) => `${i + 1}. [${note.id}] ${truncateSingleLine(note.content, 80)}`,
+      );
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              lines.length > 0
+                ? `Found ${notes.length} notes:\n${lines.join("\n")}`
+                : "No notes found.",
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_get_tags",
+    {
+      description: "Get tag usage statistics.",
+      inputSchema: {},
+    },
+    async () => {
+      const tags = await client.getTags();
+      const lines = tags.map((t) => `${t.tag}: ${t.count}`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: lines.length > 0 ? lines.join("\n") : "No tags found.",
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_get_heatmap",
+    {
+      description: "Get activity heatmap for a date range.",
+      inputSchema: {
+        startDate: z.string().describe("Start date (YYYY-MM-DD)"),
+        endDate: z.string().describe("End date (YYYY-MM-DD)"),
+      },
+    },
+    async ({ startDate, endDate }) => {
+      const heatmap = await client.getHeatmap({ startDate, endDate });
+      const lines = heatmap.map((d) => `${d.date}: ${d.count} notes`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: lines.length > 0 ? lines.join("\n") : "No activity in this range.",
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_get_statistics",
+    {
+      description: "Get user statistics (note count, attachment count).",
+      inputSchema: {},
+    },
+    async () => {
+      const stats = await client.getStatistics();
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Notes: ${stats.noteCount}, Attachments: ${stats.attachmentCount}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_get_settings",
+    {
+      description: "Get user settings.",
+      inputSchema: {},
+    },
+    async () => {
+      const settings = await client.getSettings();
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(settings, null, 2),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_update_settings",
+    {
+      description: "Update user settings.",
+      inputSchema: {
+        allowExplore: z
+          .boolean()
+          .optional()
+          .describe("Allow public notes to appear in explore"),
+      },
+    },
+    async ({ allowExplore }) => {
+      const settings = await client.updateSettings({ allowExplore });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Settings updated: ${JSON.stringify(settings)}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_batch_delete_attachments",
+    {
+      description: "Batch delete attachments by IDs (max 100).",
+      inputSchema: {
+        ids: z.array(z.string()).min(1).max(100).describe("Array of attachment IDs"),
+      },
+    },
+    async ({ ids }) => {
+      const result = await client.batchDeleteAttachments({ ids });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Deleted: ${result.deleted}, Failed: ${result.failed}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "rote_update_attachments_sort",
+    {
+      description: "Update attachments sort order for a note.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Note ID"),
+        attachmentIds: z
+          .array(z.string())
+          .min(1)
+          .describe("Ordered array of attachment IDs"),
+      },
+    },
+    async ({ noteId, attachmentIds }) => {
+      await client.updateAttachmentsSortOrder({ noteId, attachmentIds });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Updated attachment order for note ${noteId}`,
           },
         ],
       };

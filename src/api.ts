@@ -2,21 +2,33 @@ import { loadConfig } from "./config.js";
 import type {
   AddReactionInput,
   ApiEnvelope,
+  BatchDeleteAttachmentsInput,
+  BatchDeleteAttachmentsResponse,
+  BatchGetNotesInput,
   CreateArticleInput,
   CreateNoteInput,
   ExploreNotesInput,
+  GetHeatmapInput,
+  HeatmapDay,
+  ListArticlesInput,
   ListNotesInput,
   RemoveReactionInput,
   RemoveReactionResponse,
   RoteArticle,
+  RoteArticleWithMeta,
   RoteNote,
   RotePermissions,
   RoteProfile,
   RoteReaction,
+  RoteSettings,
+  RoteStatistics,
+  RoteTag,
   SearchNotesInput,
   ToolkitConfig,
+  UpdateAttachmentsSortOrderInput,
   UpdateNoteInput,
   UpdateProfileInput,
+  UpdateSettingsInput,
 } from "./types.js";
 
 export class RoteClient {
@@ -236,6 +248,164 @@ export class RoteClient {
     return this.request<RotePermissions>(
       `/v2/api/openkey/permissions?${params.toString()}`,
     );
+  }
+
+  // --- New Extended OpenKey API Methods ---
+
+  async listArticles(
+    input: ListArticlesInput = {},
+  ): Promise<RoteArticleWithMeta[]> {
+    const params = new URLSearchParams({
+      openkey: this.openKey,
+    });
+    if (input.limit !== undefined) {
+      params.set("limit", String(input.limit));
+    }
+    if (input.skip !== undefined) {
+      params.set("skip", String(input.skip));
+    }
+    if (input.keyword) {
+      params.set("keyword", input.keyword);
+    }
+
+    return this.request<RoteArticleWithMeta[]>(
+      `/v2/api/openkey/articles?${params.toString()}`,
+    );
+  }
+
+  async getArticleByNoteId(noteId: string): Promise<RoteArticle | null> {
+    const resolved = noteId?.trim();
+    if (!resolved) {
+      throw new Error("noteId is required");
+    }
+
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<RoteArticle | null>(
+      `/v2/api/openkey/articles/by-note/${encodeURIComponent(resolved)}?${params.toString()}`,
+    );
+  }
+
+  async batchGetNotes(input: BatchGetNotesInput): Promise<RoteNote[]> {
+    if (!input.ids?.length) {
+      throw new Error("ids array is required");
+    }
+    if (input.ids.length > 100) {
+      throw new Error("Maximum 100 IDs allowed");
+    }
+
+    const body = {
+      openkey: this.openKey,
+      ids: input.ids,
+    };
+
+    return this.request<RoteNote[]>("/v2/api/openkey/notes/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async getTags(): Promise<RoteTag[]> {
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<RoteTag[]>(
+      `/v2/api/openkey/tags?${params.toString()}`,
+    );
+  }
+
+  async getHeatmap(input: GetHeatmapInput): Promise<HeatmapDay[]> {
+    if (!input.startDate || !input.endDate) {
+      throw new Error("startDate and endDate are required");
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(input.startDate) || !dateRegex.test(input.endDate)) {
+      throw new Error("Invalid date format. Use YYYY-MM-DD");
+    }
+
+    const params = new URLSearchParams({
+      openkey: this.openKey,
+      startDate: input.startDate,
+      endDate: input.endDate,
+    });
+
+    return this.request<HeatmapDay[]>(
+      `/v2/api/openkey/heatmap?${params.toString()}`,
+    );
+  }
+
+  async getStatistics(): Promise<RoteStatistics> {
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<RoteStatistics>(
+      `/v2/api/openkey/statistics?${params.toString()}`,
+    );
+  }
+
+  async getSettings(): Promise<RoteSettings> {
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<RoteSettings>(
+      `/v2/api/openkey/settings?${params.toString()}`,
+    );
+  }
+
+  async updateSettings(input: UpdateSettingsInput): Promise<RoteSettings> {
+    const body = {
+      openkey: this.openKey,
+      ...input,
+    };
+
+    return this.request<RoteSettings>("/v2/api/openkey/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async batchDeleteAttachments(
+    input: BatchDeleteAttachmentsInput,
+  ): Promise<BatchDeleteAttachmentsResponse> {
+    if (!input.ids?.length) {
+      throw new Error("ids array is required");
+    }
+    if (input.ids.length > 100) {
+      throw new Error("Maximum 100 IDs allowed");
+    }
+
+    const body = {
+      openkey: this.openKey,
+      ids: input.ids,
+    };
+
+    return this.request<BatchDeleteAttachmentsResponse>(
+      "/v2/api/openkey/attachments",
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
+  async updateAttachmentsSortOrder(
+    input: UpdateAttachmentsSortOrderInput,
+  ): Promise<unknown> {
+    if (!input.noteId?.trim()) {
+      throw new Error("noteId is required");
+    }
+    if (!input.attachmentIds?.length) {
+      throw new Error("attachmentIds array is required");
+    }
+
+    const body = {
+      openkey: this.openKey,
+      noteId: input.noteId,
+      attachmentIds: input.attachmentIds,
+    };
+
+    return this.request<unknown>("/v2/api/openkey/attachments/sort", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
