@@ -8,8 +8,9 @@ Rote Toolkit 是一个基于 TypeScript 的增强工具包，主要用于在终�
 
 ## 特性
 
-- **CLI 模式**：通过终端快速记笔记、搜索笔记。
+- **CLI 模式**：通过终端快速记笔记、搜索和管理笔记。
 - **MCP 模式**：作为 Model Context Protocol 服务端，让 AI (Claude/Cursor) 能够安全、规范地读写 Rote 笔记。
+- **SDK 模式**：在 TypeScript/JavaScript 项目中导入 `RoteClient` 使用。
 - **无感鉴权**：只需一次配置 OpenKey 即可长期使用。
 
 ## 安装
@@ -37,43 +38,156 @@ rote config
 
 ## CLI 模式使用指南
 
-### 1) 快速记录笔记
+### 笔记操作
 
 ```bash
+# 快速记录笔记
 rote add "今天学到了 MCP 协议，非常有趣！"
-```
 
-附带标签、设为公开并置顶：
-
-```bash
+# 附带标签、设为公开并置顶
 rote add "实现了一个新的前端组件" -t "代码,前端,React" --public --pin
+
+# 绑定到文章
+rote add "章节总结" --article-id "<articleId>"
+
+# 搜索笔记
+rote search "MCP" --limit 20
+
+# 带过滤条件搜索
+rote search "MCP" --archived -t "ai,notes"
+
+# 获取最近的笔记
+rote list --limit 10 --skip 0 --archived -t "知识管理"
+
+# 获取探索页面的笔记（无需配置 OpenKey）
+rote explore --limit 20
 ```
 
-### 2) 搜索和获取笔记
-
-搜索包含 "MCP" 的笔记：
+### 文章操作
 
 ```bash
-rote search "MCP"
+# 创建文章
+rote article add "# 我的文章内容"
+
+# 列出文章
+rote articles --limit 20 --skip 0 -k "关键词"
 ```
 
-获取最近的笔记（支持过滤归档和标签）：
+### 反应操作
 
 ```bash
-rote list --limit 5 --archived -t "知识管理"
+# 给笔记添加反应
+rote reaction add <noteId> like
+
+# 移除反应
+rote reaction remove <noteId> like
 ```
 
-获取探索页面的笔记（无需配置 OpenKey）：
+### 个人资料与权限
 
 ```bash
-rote explore --limit 5
+# 获取个人资料
+rote profile get
+
+# 更新个人资料
+rote profile update --nickname "新昵称" --description "个人简介"
+
+# 检查 API Key 权限
+rote permissions
+```
+
+### 统计与数据
+
+```bash
+# 获取标签统计
+rote tags
+
+# 获取活动热力图
+rote heatmap --start 2024-01-01 --end 2024-12-31
+
+# 获取账户统计
+rote stats
+
+# 获取设置
+rote settings get
+
+# 更新设置
+rote settings update --allow-explore true
+```
+
+## SDK 使用指南
+
+```typescript
+import { RoteClient } from "rote-toolkit";
+
+const client = new RoteClient();
+
+// 创建笔记
+const note = await client.createNote({
+  content: "今天学到了 MCP",
+  title: "学习日志",
+  tags: ["日记", "ai"],
+  isPublic: false,
+  pin: false,
+});
+
+// 更新笔记
+await client.updateNote({
+  noteId: "<noteId>",
+  title: "修改后的标题",
+  tags: ["知识", "rote"],
+  isPublic: true,
+  archived: false,
+});
+
+// 搜索笔记
+const results = await client.searchNotes({
+  keyword: "MCP",
+  limit: 20,
+  skip: 0,
+  tag: ["ai"],
+});
+
+// 列出笔记
+const notes = await client.listNotes({ limit: 20 });
+
+// 探索公开笔记
+const explore = await client.exploreNotes({ limit: 20 });
+
+// 文章操作
+const article = await client.createArticle({ content: "# 文章" });
+const articles = await client.listArticles({ limit: 20 });
+
+// 批量操作
+const batchNotes = await client.batchGetNotes({ ids: ["id1", "id2"] });
+
+// 反应操作
+await client.addReaction({ roteid: "<noteId>", type: "like" });
+await client.removeReaction({ roteid: "<noteId>", type: "like" });
+
+// 个人资料与权限
+const profile = await client.getProfile();
+const permissions = await client.getPermissions();
+
+// 统计数据
+const tags = await client.getTags();
+const heatmap = await client.getHeatmap({ startDate: "2024-01-01", endDate: "2024-12-31" });
+const stats = await client.getStatistics();
+
+// 设置
+const settings = await client.getSettings();
+await client.updateSettings({ allowExplore: true });
+
+// 附件操作
+await client.batchDeleteAttachments({ ids: ["att1", "att2"] });
+await client.updateAttachmentsSortOrder({ noteId: "<noteId>", attachmentIds: ["att1", "att2"] });
 ```
 
 ## MCP 模式使用指南
 
 ### 是否需要提前安装？
 
-不需要。  
+不需要。
 在 VS Code / Claude Desktop 里使用 `npx` 或 `bunx` 配置时，会在启动 MCP Server 时自动下载并运行 `rote-toolkit`。
 
 仅当你希望本机直接运行命令时，才需要全局安装：
@@ -127,21 +241,50 @@ rote-mcp
 ### 版本建议
 
 - 追踪最新版：`rote-toolkit@latest`
-- 需要稳定可复现：固定版本号，例如 `rote-toolkit@0.3.3`
+- 需要稳定可复现：固定版本号，例如 `rote-toolkit@0.5.0`
 
 ### 常见问题
 
 - 报错 `could not determine executable to run`：通常是 `npx` 参数写法不对，确认使用 `-p rote-toolkit@... rote-mcp`。
 - 报错 `unknown command 'rote-mcp'`（bunx）：需要 `--package`，例如 `bunx -y --package rote-toolkit@latest rote-mcp`。
 
-### AI 可使用的能力 (Tools)
+### AI 可使用的能力 (MCP Tools)
 
-- `rote_create_note`
-- `rote_update_note`
-- `rote_delete_note`
-- `rote_search_notes`
-- `rote_list_notes`
-- `rote_explore_notes`
+#### 笔记
+- `rote_create_note` - 创建笔记
+- `rote_update_note` - 更新笔记
+- `rote_delete_note` - 删除笔记
+- `rote_search_notes` - 搜索笔记
+- `rote_list_notes` - 列出笔记
+- `rote_explore_notes` - 获取探索页笔记（无需授权）
+- `rote_batch_get_notes` - 批量获取笔记（最多 100 条）
+
+#### 文章
+- `rote_create_article` - 创建文章
+- `rote_list_articles` - 列出文章
+- `rote_get_article_by_note` - 通过笔记获取关联文章
+
+#### 反应
+- `rote_add_reaction` - 添加反应
+- `rote_remove_reaction` - 移除反应
+
+#### 个人资料与权限
+- `rote_get_profile` - 获取个人资料
+- `rote_update_profile` - 更新个人资料
+- `rote_get_permissions` - 检查 API Key 权限
+
+#### 统计与数据
+- `rote_get_tags` - 获取标签统计
+- `rote_get_heatmap` - 获取活动热力图
+- `rote_get_statistics` - 获取用户统计
+
+#### 设置
+- `rote_get_settings` - 获取用户设置
+- `rote_update_settings` - 更新用户设置
+
+#### 附件
+- `rote_batch_delete_attachments` - 批量删除附件（最多 100 个）
+- `rote_update_attachments_sort` - 更新附件排序
 
 ## 本地开发
 
