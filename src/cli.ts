@@ -7,6 +7,7 @@ import { getConfigPath, saveConfig } from "./config.js";
 import { RoteClient } from "./api.js";
 import { printNotes } from "./output.js";
 import { startMcpServer } from "./mcp.js";
+import { parseTags } from "./utils.js";
 
 const program = new Command();
 const packageJson = JSON.parse(
@@ -342,14 +343,3 @@ program.parseAsync(process.argv).catch((error: unknown) => {
   console.error(`Error: ${message}`);
   process.exit(1);
 });
-
-function parseTags(tagsRaw?: string): string[] {
-  if (!tagsRaw) {
-    return [];
-  }
-
-  return tagsRaw
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
