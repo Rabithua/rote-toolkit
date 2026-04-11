@@ -160,7 +160,7 @@ describe.skipIf(skip)("RoteClient Integration Tests", () => {
       expect(stats).toBeDefined();
       // Support both roteCount (new) and noteCount (legacy) during transition
       const roteCount =
-        stats.roteCount ?? (stats as Record<string, unknown>).noteCount;
+        stats.roteCount ?? (stats as unknown as Record<string, unknown>).noteCount;
       expect(typeof roteCount).toBe("number");
     });
 
