@@ -517,7 +517,7 @@ export async function startMcpServer(): Promise<void> {
         content: [
           {
             type: "text",
-            text: `Notes: ${stats.noteCount}, Attachments: ${stats.attachmentCount}`,
+            text: `Rotes: ${stats.roteCount}, Attachments: ${stats.attachmentCount}`,
           },
         ],
       };

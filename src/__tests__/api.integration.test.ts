@@ -158,9 +158,10 @@ describe.skipIf(skip)("RoteClient Integration Tests", () => {
       const stats = await client.getStatistics();
 
       expect(stats).toBeDefined();
-      // API may return noteCount or roteCount
-      const noteCount = stats.noteCount ?? (stats as Record<string, unknown>).roteCount;
-      expect(typeof noteCount).toBe("number");
+      // Support both roteCount (new) and noteCount (legacy) during transition
+      const roteCount =
+        stats.roteCount ?? (stats as Record<string, unknown>).noteCount;
+      expect(typeof roteCount).toBe("number");
     });
 
     it("should get heatmap", async () => {

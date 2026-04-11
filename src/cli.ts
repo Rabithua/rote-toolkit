@@ -295,7 +295,7 @@ program
   .action(async () => {
     const client = new RoteClient();
     const stats = await client.getStatistics();
-    console.log(`Notes: ${stats.noteCount}`);
+    console.log(`Rotes: ${stats.roteCount}`);
     console.log(`Attachments: ${stats.attachmentCount}`);
   });
 

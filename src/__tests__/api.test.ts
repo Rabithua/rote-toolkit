@@ -361,7 +361,7 @@ describe("RoteClient", () => {
 
   describe("statistics", () => {
     it("should get statistics", async () => {
-      const mockStats = { noteCount: 100, attachmentCount: 50 };
+      const mockStats = { roteCount: 100, attachmentCount: 50 };
       fetchSpy.mockResolvedValueOnce(mockResponse(mockStats));
 
       const result = await client.getStatistics();

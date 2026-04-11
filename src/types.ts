@@ -154,7 +154,7 @@ export interface HeatmapDay {
 }
 
 export interface RoteStatistics {
-  noteCount: number;
+  roteCount: number;
   attachmentCount: number;
 }
 
