@@ -20,6 +20,7 @@
     "start": "node dist/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "prepublishOnly": "npm run build",
     "release": "bash scripts/release.sh",
     "release:patch": "bash scripts/release.sh patch",
@@ -51,6 +52,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
+    "dotenv": "^17.4.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4"
