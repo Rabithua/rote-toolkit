@@ -92,7 +92,11 @@ program
   .action(async (action: string, roteid: string, type: string) => {
     const client = new RoteClient();
     if (action === "add") {
-      const reaction = await client.addReaction({ roteid, type });
+      const reaction = await client.addReaction({
+        roteid,
+        type,
+        metadata: { source: "cli" },
+      });
       console.log(`Added reaction: ${reaction.id}`);
     } else if (action === "remove") {
       const result = await client.removeReaction({ roteid, type });

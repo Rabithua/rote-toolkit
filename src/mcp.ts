@@ -143,11 +143,12 @@ export async function startMcpServer(): Promise<void> {
         metadata: z
           .record(z.string(), z.unknown())
           .optional()
-          .describe("Optional metadata"),
+          .describe("Optional metadata object. A { source } field is auto-injected as 'mcp' if not provided."),
       },
     },
     async ({ roteid, type, metadata }) => {
-      const reaction = await client.addReaction({ roteid, type, metadata });
+      const merged = { source: "mcp" as const, ...metadata };
+      const reaction = await client.addReaction({ roteid, type, metadata: merged });
       return {
         content: [
           {

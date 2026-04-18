@@ -61,6 +61,11 @@ export interface RoteReaction {
 export interface AddReactionInput {
   type: string;
   roteid: string;
+  /**
+   * Optional metadata attached to the reaction.
+   * Used to record the source channel and any extra context.
+   * Example: { source: 'web' }, { source: 'cli' }, { source: 'mcp' }
+   */
   metadata?: Record<string, unknown>;
 }
 
