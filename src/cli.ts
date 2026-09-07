@@ -1,21 +1,17 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { getConfigPath, saveConfig } from "./config.js";
 import { RoteClient } from "./api.js";
+import { uploadAttachmentFiles } from "./attachmentUpload.js";
 import { printNotes } from "./output.js";
 import { startMcpServer } from "./mcp.js";
 import { parseTags } from "./utils.js";
+import { packageVersion } from "./version.js";
 
 const program = new Command();
-const packageJson = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-) as { version?: string };
-const cliVersion = packageJson.version ?? "0.0.0";
-
-program.name("rote").description("Rote Toolkit CLI").version(cliVersion);
+program.name("rote").description("Rote Toolkit CLI").version(packageVersion);
 
 program
   .command("config")
@@ -69,18 +65,49 @@ program
   );
 
 program
-  .command("article")
-  .description("Manage articles")
-  .argument("<action>", "action to perform (add)")
-  .argument("[content]", "article content")
-  .action(async (action: string, content?: string) => {
-    if (action === "add" && content) {
-      const client = new RoteClient();
-      const article = await client.createArticle({ content });
-      console.log(`Created article: ${article.id}`);
-    } else {
-      console.error("Invalid action or missing content");
-    }
+  .command("get")
+  .description("Get a note by ID")
+  .argument("<noteId>", "note ID")
+  .action(async (noteId: string) => {
+    console.log(JSON.stringify(await new RoteClient().getNote(noteId), null, 2));
+  });
+
+const articleCommand = program.command("article").description("Manage articles");
+
+articleCommand
+  .command("add")
+  .description("Create an article")
+  .argument("<content>", "article content")
+  .action(async (content: string) => {
+    const article = await new RoteClient().createArticle({ content });
+    console.log(`Created article: ${article.id}`);
+  });
+
+articleCommand
+  .command("get")
+  .description("Get an article by ID")
+  .argument("<articleId>", "article ID")
+  .action(async (articleId: string) => {
+    console.log(JSON.stringify(await new RoteClient().getArticle(articleId), null, 2));
+  });
+
+articleCommand
+  .command("update")
+  .description("Update an article")
+  .argument("<articleId>", "article ID")
+  .argument("<content>", "new article content")
+  .action(async (articleId: string, content: string) => {
+    const article = await new RoteClient().updateArticle({ articleId, content });
+    console.log(`Updated article: ${article.id}`);
+  });
+
+articleCommand
+  .command("delete")
+  .description("Delete an article")
+  .argument("<articleId>", "article ID")
+  .action(async (articleId: string) => {
+    const article = await new RoteClient().deleteArticle(articleId);
+    console.log(`Deleted article: ${article.id}`);
   });
 
 program
@@ -334,6 +361,58 @@ program
       }
     },
   );
+
+const attachmentCommand = program.command("attachment").description("Manage attachments");
+
+attachmentCommand
+  .command("delete")
+  .description("Delete one attachment")
+  .argument("<attachmentId>", "attachment ID")
+  .action(async (attachmentId: string) => {
+    const result = await new RoteClient().deleteAttachment(attachmentId);
+    console.log(`Deleted attachment count: ${result.count}`);
+  });
+
+attachmentCommand
+  .command("upload")
+  .description("Upload image or video files and attach them to a note")
+  .argument("<noteId>", "note ID")
+  .argument("<files...>", "local file paths")
+  .action(async (noteId: string, files: string[]) => {
+    const uploaded = await uploadAttachmentFiles(new RoteClient(), noteId, files);
+    for (const result of uploaded) {
+      console.log(`${result.path}: ${result.attachment.id}`);
+    }
+  });
+
+const shareCommand = program.command("share").description("Manage note share links");
+
+shareCommand
+  .command("status")
+  .description("Get a note share-link state")
+  .argument("<noteId>", "note ID")
+  .action(async (noteId: string) => {
+    const state = await new RoteClient().getNoteShareState(noteId);
+    console.log(JSON.stringify(state, null, 2));
+  });
+
+shareCommand
+  .command("create")
+  .description("Create or return a note share link")
+  .argument("<noteId>", "note ID")
+  .action(async (noteId: string) => {
+    const share = await new RoteClient().createResolvedNoteShare(noteId);
+    console.log(share.url);
+  });
+
+shareCommand
+  .command("revoke")
+  .description("Revoke a note share link")
+  .argument("<noteId>", "note ID")
+  .action(async (noteId: string) => {
+    await new RoteClient().revokeNoteShare(noteId);
+    console.log(`Revoked share link for note: ${noteId}`);
+  });
 
 program
   .command("mcp")

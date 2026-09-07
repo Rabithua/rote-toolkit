@@ -8,13 +8,21 @@ import type {
   CreateArticleInput,
   CreateNoteInput,
   ExploreNotesInput,
+  FinalizeAttachmentUploadsInput,
   GetHeatmapInput,
   HeatmapDay,
   ListArticlesInput,
   ListNotesInput,
   RemoveReactionInput,
   RemoveReactionResponse,
+  NoteShareLink,
+  NoteShareState,
+  PresignAttachmentUploadsInput,
+  PresignAttachmentUploadsResponse,
+  ResolvedNoteShareLink,
   RoteArticle,
+  RoteArticleDetails,
+  RoteAttachment,
   RoteArticleWithMeta,
   RoteNote,
   RotePermissions,
@@ -26,6 +34,7 @@ import type {
   SearchNotesInput,
   ToolkitConfig,
   UpdateAttachmentsSortOrderInput,
+  UpdateArticleInput,
   UpdateNoteInput,
   UpdateProfileInput,
   UpdateSettingsInput,
@@ -61,6 +70,14 @@ export class RoteClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+  }
+
+  async getNote(noteId: string): Promise<RoteNote> {
+    const resolved = this.requireId(noteId, "noteId");
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<RoteNote>(
+      `/v2/api/openkey/notes/${encodeURIComponent(resolved)}?${params.toString()}`,
+    );
   }
 
   async updateNote(input: UpdateNoteInput): Promise<RoteNote> {
@@ -196,6 +213,38 @@ export class RoteClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+  }
+
+  async getArticle(articleId: string): Promise<RoteArticleDetails> {
+    const resolved = this.requireId(articleId, "articleId");
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<RoteArticleDetails>(
+      `/v2/api/openkey/articles/${encodeURIComponent(resolved)}?${params.toString()}`,
+    );
+  }
+
+  async updateArticle(input: UpdateArticleInput): Promise<RoteArticle> {
+    const articleId = this.requireId(input.articleId, "articleId");
+    if (input.content === undefined) {
+      throw new Error("content is required");
+    }
+    return this.request<RoteArticle>(
+      `/v2/api/openkey/articles/${encodeURIComponent(articleId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ openkey: this.openKey, content: input.content }),
+      },
+    );
+  }
+
+  async deleteArticle(articleId: string): Promise<RoteArticle> {
+    const resolved = this.requireId(articleId, "articleId");
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<RoteArticle>(
+      `/v2/api/openkey/articles/${encodeURIComponent(resolved)}?${params.toString()}`,
+      { method: "DELETE" },
+    );
   }
 
   async addReaction(input: AddReactionInput): Promise<RoteReaction> {
@@ -385,6 +434,71 @@ export class RoteClient {
     );
   }
 
+  async deleteAttachment(attachmentId: string): Promise<BatchDeleteAttachmentsResponse> {
+    const resolved = this.requireId(attachmentId, "attachmentId");
+    const params = new URLSearchParams({ openkey: this.openKey });
+    return this.request<BatchDeleteAttachmentsResponse>(
+      `/v2/api/openkey/attachments/${encodeURIComponent(resolved)}?${params.toString()}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async presignAttachmentUploads(
+    input: PresignAttachmentUploadsInput,
+  ): Promise<PresignAttachmentUploadsResponse> {
+    if (!input.files?.length) {
+      throw new Error("files array is required");
+    }
+    if (input.files.length > 9) {
+      throw new Error("Maximum 9 files allowed");
+    }
+    for (const file of input.files) {
+      if (!file.contentType?.trim()) throw new Error("contentType is required");
+      if (!Number.isSafeInteger(file.size) || file.size <= 0) {
+        throw new Error("file size must be a positive integer");
+      }
+    }
+    return this.request<PresignAttachmentUploadsResponse>(
+      "/v2/api/openkey/attachments/presign",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ openkey: this.openKey, files: input.files }),
+      },
+    );
+  }
+
+  async refreshAttachmentUploadReservation(
+    reservationId: string,
+  ): Promise<PresignAttachmentUploadsResponse> {
+    const resolved = this.requireId(reservationId, "reservationId");
+    return this.request<PresignAttachmentUploadsResponse>(
+      `/v2/api/openkey/attachments/reservations/${encodeURIComponent(resolved)}/refresh`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ openkey: this.openKey }),
+      },
+    );
+  }
+
+  async finalizeAttachmentUploads(
+    input: FinalizeAttachmentUploadsInput,
+  ): Promise<RoteAttachment[]> {
+    if (!input.attachments?.length) {
+      throw new Error("attachments array is required");
+    }
+    return this.request<RoteAttachment[]>("/v2/api/openkey/attachments/finalize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        openkey: this.openKey,
+        attachments: input.attachments,
+        ...(input.noteId ? { noteId: input.noteId } : {}),
+      }),
+    });
+  }
+
   async updateAttachmentsSortOrder(
     input: UpdateAttachmentsSortOrderInput,
   ): Promise<unknown> {
@@ -406,6 +520,92 @@ export class RoteClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+  }
+
+  async getNoteShare(noteId: string): Promise<NoteShareLink | null> {
+    return this.noteShareRequest<NoteShareLink | null>(noteId, "GET");
+  }
+
+  async createNoteShare(noteId: string): Promise<NoteShareLink> {
+    return this.noteShareRequest<NoteShareLink>(noteId, "PUT");
+  }
+
+  async revokeNoteShare(noteId: string): Promise<void> {
+    await this.noteShareRequest<null>(noteId, "DELETE");
+  }
+
+  async getNoteShareState(noteId: string): Promise<NoteShareState> {
+    const share = await this.getNoteShare(noteId);
+    if (!share) return { active: false };
+    const origin = await this.getShareFrontendOrigin();
+    return {
+      active: true,
+      token: share.token,
+      createdAt: share.createdAt,
+      url: origin ? `${origin}/s/${encodeURIComponent(share.token)}` : null,
+    };
+  }
+
+  async createResolvedNoteShare(noteId: string): Promise<ResolvedNoteShareLink> {
+    const origin = await this.getShareFrontendOrigin();
+    if (!origin) throw new Error("Rote frontend URL is unavailable");
+    const share = await this.createNoteShare(noteId);
+    return {
+      ...share,
+      url: `${origin}/s/${encodeURIComponent(share.token)}`,
+    };
+  }
+
+  async resolveNoteShareUrl(token: string): Promise<string> {
+    const resolved = this.requireId(token, "share token");
+    const origin = await this.getShareFrontendOrigin();
+    if (!origin) throw new Error("Rote frontend URL is unavailable");
+    return `${origin}/s/${encodeURIComponent(resolved)}`;
+  }
+
+  async getShareFrontendOrigin(): Promise<string | null> {
+    const status = await this.request<{ site?: { frontendUrl?: string } }>("/v2/api/site/status");
+    const configured = status.site?.frontendUrl;
+    if (typeof configured !== "string" || configured.trim().length === 0) return null;
+    try {
+      const url = new URL(configured.trim());
+      if (
+        !["http:", "https:"].includes(url.protocol) ||
+        url.username ||
+        url.password ||
+        url.pathname !== "/" ||
+        url.search ||
+        url.hash
+      ) {
+        return null;
+      }
+      return url.origin;
+    } catch {
+      return null;
+    }
+  }
+
+  private async noteShareRequest<T>(
+    noteId: string,
+    method: "GET" | "PUT" | "DELETE",
+  ): Promise<T> {
+    const resolved = this.requireId(noteId, "noteId");
+    const path = `/v2/api/openkey/notes/${encodeURIComponent(resolved)}/share`;
+    if (method === "GET" || method === "DELETE") {
+      const params = new URLSearchParams({ openkey: this.openKey });
+      return this.request<T>(`${path}?${params.toString()}`, { method });
+    }
+    return this.request<T>(path, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ openkey: this.openKey }),
+    });
+  }
+
+  private requireId(value: string, label: string): string {
+    const resolved = value?.trim();
+    if (!resolved) throw new Error(`${label} is required`);
+    return resolved;
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {

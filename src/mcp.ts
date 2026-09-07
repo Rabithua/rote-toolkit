@@ -3,13 +3,14 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import * as z from "zod/v4";
 import { RoteClient } from "./api.js";
 import { truncateSingleLine } from "./output.js";
+import { packageVersion } from "./version.js";
 
 export async function startMcpServer(): Promise<void> {
   const client = new RoteClient();
 
   const server = new McpServer({
     name: "rote-toolkit",
-    version: "0.1.0",
+    version: packageVersion,
   });
 
   server.registerTool(
@@ -45,6 +46,20 @@ export async function startMcpServer(): Promise<void> {
           },
         ],
       };
+    },
+  );
+
+  server.registerTool(
+    "rote_get_note",
+    {
+      description: "Get a note by ID through the Rote OpenKey API.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Note ID"),
+      },
+    },
+    async ({ noteId }) => {
+      const note = await client.getNote(noteId);
+      return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
     },
   );
 
@@ -113,6 +128,49 @@ export async function startMcpServer(): Promise<void> {
   );
 
   server.registerTool(
+    "rote_get_note_share",
+    {
+      description: "Get the share-link state for a note.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Note ID"),
+      },
+    },
+    async ({ noteId }) => ({
+      content: [
+        { type: "text", text: JSON.stringify(await client.getNoteShareState(noteId), null, 2) },
+      ],
+    }),
+  );
+
+  server.registerTool(
+    "rote_create_note_share",
+    {
+      description: "Create or return a share link for a note.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Note ID"),
+      },
+    },
+    async ({ noteId }) => {
+      const share = await client.createResolvedNoteShare(noteId);
+      return { content: [{ type: "text", text: JSON.stringify(share, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
+    "rote_revoke_note_share",
+    {
+      description: "Revoke the share link for a note.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Note ID"),
+      },
+    },
+    async ({ noteId }) => {
+      await client.revokeNoteShare(noteId);
+      return { content: [{ type: "text", text: `Revoked share link for note ${noteId}` }] };
+    },
+  );
+
+  server.registerTool(
     "rote_create_article",
     {
       description: "Create an article in Rote via OpenKey API.",
@@ -130,6 +188,50 @@ export async function startMcpServer(): Promise<void> {
           },
         ],
       };
+    },
+  );
+
+  server.registerTool(
+    "rote_get_article",
+    {
+      description: "Get an article by ID.",
+      inputSchema: {
+        articleId: z.string().min(1).describe("Article ID"),
+      },
+    },
+    async ({ articleId }) => ({
+      content: [
+        { type: "text", text: JSON.stringify(await client.getArticle(articleId), null, 2) },
+      ],
+    }),
+  );
+
+  server.registerTool(
+    "rote_update_article",
+    {
+      description: "Update an article by ID.",
+      inputSchema: {
+        articleId: z.string().min(1).describe("Article ID"),
+        content: z.string().describe("New article content"),
+      },
+    },
+    async ({ articleId, content }) => {
+      const article = await client.updateArticle({ articleId, content });
+      return { content: [{ type: "text", text: `Updated article ${article.id}` }] };
+    },
+  );
+
+  server.registerTool(
+    "rote_delete_article",
+    {
+      description: "Delete an article by ID.",
+      inputSchema: {
+        articleId: z.string().min(1).describe("Article ID"),
+      },
+    },
+    async ({ articleId }) => {
+      const article = await client.deleteArticle(articleId);
+      return { content: [{ type: "text", text: `Deleted article ${article.id}` }] };
     },
   );
 
@@ -569,6 +671,20 @@ export async function startMcpServer(): Promise<void> {
   );
 
   server.registerTool(
+    "rote_delete_attachment",
+    {
+      description: "Delete one attachment by ID.",
+      inputSchema: {
+        attachmentId: z.string().min(1).describe("Attachment ID"),
+      },
+    },
+    async ({ attachmentId }) => {
+      const result = await client.deleteAttachment(attachmentId);
+      return { content: [{ type: "text", text: `Deleted attachment count: ${result.count}` }] };
+    },
+  );
+
+  server.registerTool(
     "rote_batch_delete_attachments",
     {
       description: "Batch delete attachments by IDs (max 100).",
@@ -582,7 +698,7 @@ export async function startMcpServer(): Promise<void> {
         content: [
           {
             type: "text",
-            text: `Deleted: ${result.deleted}, Failed: ${result.failed}`,
+            text: `Deleted attachment count: ${result.count}`,
           },
         ],
       };

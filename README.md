@@ -16,6 +16,7 @@ Main project repository: [`Rabithua/rote`](https://github.com/Rabithua/rote).
 ## Install
 
 > Node.js v18 or higher is required.
+> Rote Toolkit 0.6.0 requires Rote Server 2.4.0 or later for share-link APIs.
 
 ```bash
 npm install -g rote-toolkit
@@ -50,6 +51,9 @@ rote add "Built a new frontend component" -t "code,frontend,React" --public --pi
 # Bind note to an article
 rote add "Chapter summary" --article-id "<articleId>"
 
+# Get one note by ID
+rote get <noteId>
+
 # Search notes
 rote search "MCP" --limit 20
 
@@ -69,8 +73,26 @@ rote explore --limit 20
 # Create an article
 rote article add "# My Article Content"
 
+# Get, update, or delete an article
+rote article get <articleId>
+rote article update <articleId> "# Revised content"
+rote article delete <articleId>
+
 # List articles
 rote articles --limit 20 --skip 0 -k "keyword"
+```
+
+### Share Links & Attachments
+
+```bash
+# SHAREROTE is required for these commands
+rote share status <noteId>
+rote share create <noteId>
+rote share revoke <noteId>
+
+# Upload explicit image/video paths; Live Photo composition uses the SDK primitives
+rote attachment upload <noteId> ./photo.jpg ./clip.mp4
+rote attachment delete <attachmentId>
 ```
 
 ### Reactions
@@ -140,6 +162,8 @@ await client.updateNote({
   archived: false,
 });
 
+const current = await client.getNote("<noteId>");
+
 // Search notes
 const results = await client.searchNotes({
   keyword: "MCP",
@@ -157,6 +181,9 @@ const explore = await client.exploreNotes({ limit: 20 });
 // Articles
 const article = await client.createArticle({ content: "# Article" });
 const articles = await client.listArticles({ limit: 20 });
+const articleDetails = await client.getArticle(article.id);
+await client.updateArticle({ articleId: article.id, content: "# Revised" });
+await client.deleteArticle(article.id);
 
 // Batch operations
 const batchNotes = await client.batchGetNotes({ ids: ["id1", "id2"] });
@@ -179,9 +206,33 @@ const settings = await client.getSettings();
 await client.updateSettings({ allowExplore: true });
 
 // Attachments
+const upload = await client.presignAttachmentUploads({
+  files: [{ filename: "photo.jpg", contentType: "image/jpeg", size: 1234 }],
+});
+// Refresh only when a reservation's upload credentials have expired.
+if (upload.reservationId && upload.expiresAt && Date.parse(upload.expiresAt) <= Date.now()) {
+  await client.refreshAttachmentUploadReservation(upload.reservationId);
+}
+await client.finalizeAttachmentUploads({
+  noteId: "<noteId>",
+  attachments: [{
+    uuid: upload.items[0].uuid,
+    originalKey: upload.items[0].original.key,
+    mimetype: "image/jpeg",
+    size: 1234,
+  }],
+});
+await client.deleteAttachment("<attachmentId>");
 await client.batchDeleteAttachments({ ids: ["att1", "att2"] });
 await client.updateAttachmentsSortOrder({ noteId: "<noteId>", attachmentIds: ["att1", "att2"] });
+
+// Note share links (SHAREROTE permission required)
+const shareState = await client.getNoteShareState("<noteId>");
+const share = await client.createResolvedNoteShare("<noteId>");
+await client.revokeNoteShare("<noteId>");
 ```
+
+`createResolvedNoteShare` checks `/v2/api/site/status` before creating a bearer link. It fails without creating a link when the configured frontend URL is missing or invalid. Raw attachment primitives support Live Photo pairs; the CLI never reads files unless their paths are explicitly passed to `attachment upload`.
 
 ## MCP Usage
 
@@ -241,7 +292,7 @@ rote-mcp
 ### Version strategy
 
 - Track latest: `rote-toolkit@latest`
-- Reproducible setup: pin a version, for example `rote-toolkit@0.5.0`
+- Reproducible setup: pin a version, for example `rote-toolkit@0.6.0`
 
 ### Common errors
 
@@ -252,15 +303,22 @@ rote-mcp
 
 #### Notes
 - `rote_create_note` - Create a note
+- `rote_get_note` - Get a note by ID
 - `rote_update_note` - Update an existing note
 - `rote_delete_note` - Delete a note
 - `rote_search_notes` - Search notes by keyword
 - `rote_list_notes` - List recent notes
 - `rote_explore_notes` - Get public explore notes (no auth required)
 - `rote_batch_get_notes` - Batch get notes by IDs (max 100)
+- `rote_get_note_share` - Get a note share-link state
+- `rote_create_note_share` - Create or return a note share link
+- `rote_revoke_note_share` - Revoke a note share link
 
 #### Articles
 - `rote_create_article` - Create an article
+- `rote_get_article` - Get an article by ID
+- `rote_update_article` - Update an article
+- `rote_delete_article` - Delete an article
 - `rote_list_articles` - List user articles
 - `rote_get_article_by_note` - Get article linked to a note
 
@@ -283,8 +341,11 @@ rote-mcp
 - `rote_update_settings` - Update user settings
 
 #### Attachments
+- `rote_delete_attachment` - Delete one attachment
 - `rote_batch_delete_attachments` - Batch delete attachments (max 100)
 - `rote_update_attachments_sort` - Update attachment sort order
+
+The stdio MCP intentionally has no tool that accepts local file paths. Use the explicit CLI upload command or the SDK attachment primitives instead.
 
 ## Local Development
 
@@ -304,7 +365,7 @@ Login first:
 npm login
 ```
 
-Build + bump version + publish:
+Update the version, test, build, publish, tag, and push from `main`:
 
 ```bash
 npm run release:patch
@@ -321,7 +382,9 @@ Release script steps:
 
 1. Ensure git workspace is clean
 2. Check npm login state
-3. `npm run build`
-4. `npm pack --dry-run`
-5. `npm version <patch|minor|major>`
-6. `npm publish`
+3. Update or verify the target version
+4. Run tests and build
+5. Run `npm pack --dry-run`
+6. Commit any version-file change
+7. Publish to npm
+8. Create and push the annotated tag

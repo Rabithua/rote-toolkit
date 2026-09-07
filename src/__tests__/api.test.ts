@@ -123,6 +123,19 @@ describe("RoteClient", () => {
     });
   });
 
+  describe("getNote", () => {
+    it("should get a note by ID", async () => {
+      fetchSpy.mockResolvedValueOnce(mockResponse({ id: "note-1", content: "Test" }));
+
+      await client.getNote("note-1");
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "https://api.test.com/v2/api/openkey/notes/note-1?openkey=test-key-123",
+        undefined
+      );
+    });
+  });
+
   describe("deleteNote", () => {
     it("should delete a note", async () => {
       fetchSpy.mockResolvedValueOnce(mockResponse({}));
@@ -230,6 +243,30 @@ describe("RoteClient", () => {
       const result = await client.listArticles({ limit: 20, skip: 0 });
 
       expect(result).toEqual(mockArticles);
+    });
+  });
+
+  describe("article management", () => {
+    it("should get, update, and delete an article", async () => {
+      const article = { id: "article-1", content: "Article" };
+      fetchSpy
+        .mockResolvedValueOnce(mockResponse(article))
+        .mockResolvedValueOnce(mockResponse({ ...article, content: "Updated" }))
+        .mockResolvedValueOnce(mockResponse(article));
+
+      await client.getArticle(article.id);
+      await client.updateArticle({ articleId: article.id, content: "Updated" });
+      await client.deleteArticle(article.id);
+
+      expect(fetchSpy.mock.calls[0][0]).toBe(
+        "https://api.test.com/v2/api/openkey/articles/article-1?openkey=test-key-123"
+      );
+      expect(fetchSpy.mock.calls[1][1]).toEqual(
+        expect.objectContaining({ method: "PUT" })
+      );
+      expect(fetchSpy.mock.calls[2][1]).toEqual(
+        expect.objectContaining({ method: "DELETE" })
+      );
     });
   });
 
@@ -391,14 +428,73 @@ describe("RoteClient", () => {
   });
 
   describe("attachments", () => {
+    it("should delete one attachment", async () => {
+      fetchSpy.mockResolvedValueOnce(mockResponse({ count: 1 }));
+
+      expect(await client.deleteAttachment("att-1")).toEqual({ count: 1 });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "https://api.test.com/v2/api/openkey/attachments/att-1?openkey=test-key-123",
+        expect.objectContaining({ method: "DELETE" })
+      );
+    });
+
+    it("should presign, refresh, and finalize attachment uploads", async () => {
+      const manifest = {
+        items: [
+          {
+            uuid: "upload-1",
+            original: {
+              key: "users/test/uploads/upload-1.jpg",
+              putUrl: "https://upload/1",
+              url: "https://files/1",
+              contentType: "image/jpeg",
+            },
+          },
+        ],
+        reservationId: "reservation-1",
+        expiresAt: "2026-09-07T00:00:00.000Z",
+      };
+      fetchSpy
+        .mockResolvedValueOnce(mockResponse(manifest))
+        .mockResolvedValueOnce(mockResponse(manifest))
+        .mockResolvedValueOnce(mockResponse([{ id: "att-1", url: "https://files/1" }]));
+
+      await client.presignAttachmentUploads({
+        files: [{ filename: "photo.jpg", contentType: "image/jpeg", size: 4 }],
+      });
+      await client.refreshAttachmentUploadReservation("reservation-1");
+      await client.finalizeAttachmentUploads({
+        noteId: "note-1",
+        attachments: [
+          {
+            uuid: "upload-1",
+            originalKey: "users/test/uploads/upload-1.jpg",
+            mimetype: "image/jpeg",
+            size: 4,
+          },
+        ],
+      });
+
+      expect(fetchSpy.mock.calls[0][0]).toBe(
+        "https://api.test.com/v2/api/openkey/attachments/presign"
+      );
+      expect(fetchSpy.mock.calls[1][0]).toContain(
+        "/attachments/reservations/reservation-1/refresh"
+      );
+      expect(fetchSpy.mock.calls[2][0]).toBe(
+        "https://api.test.com/v2/api/openkey/attachments/finalize"
+      );
+    });
+
     it("should batch delete attachments", async () => {
-      fetchSpy.mockResolvedValueOnce(mockResponse({ deleted: 2, failed: 0 }));
+      fetchSpy.mockResolvedValueOnce(mockResponse({ count: 2 }));
 
       const result = await client.batchDeleteAttachments({
         ids: ["att-1", "att-2"],
       });
 
-      expect(result).toEqual({ deleted: 2, failed: 0 });
+      expect(result).toEqual({ count: 2 });
     });
 
     it("should throw error when ids is empty", async () => {
@@ -428,6 +524,66 @@ describe("RoteClient", () => {
           attachmentIds: ["att-1"],
         })
       ).rejects.toThrow("noteId is required");
+    });
+  });
+
+  describe("note shares", () => {
+    const share = { token: "share-token", createdAt: "2026-09-07T00:00:00.000Z" };
+
+    it("should get and revoke a note share through OpenKey", async () => {
+      fetchSpy.mockResolvedValueOnce(mockResponse(share)).mockResolvedValueOnce(mockResponse(null));
+
+      expect(await client.getNoteShare("note-1")).toEqual(share);
+      await client.revokeNoteShare("note-1");
+
+      expect(fetchSpy.mock.calls[0][0]).toContain("/openkey/notes/note-1/share?openkey=");
+      expect(fetchSpy.mock.calls[1][1]).toEqual(expect.objectContaining({ method: "DELETE" }));
+    });
+
+    it("should resolve the configured self-hosted frontend before creating", async () => {
+      fetchSpy
+        .mockResolvedValueOnce(
+          mockResponse({ site: { frontendUrl: "http://localhost:4321/" } })
+        )
+        .mockResolvedValueOnce(mockResponse(share));
+
+      const resolved = await client.createResolvedNoteShare("note-1");
+
+      expect(resolved.url).toBe("http://localhost:4321/s/share-token");
+      expect(fetchSpy.mock.calls[0][0]).toBe("https://api.test.com/v2/api/site/status");
+      expect(fetchSpy.mock.calls[1][1]).toEqual(expect.objectContaining({ method: "PUT" }));
+    });
+
+    it("should not create when the frontend URL is invalid", async () => {
+      fetchSpy.mockResolvedValueOnce(mockResponse({ site: { frontendUrl: "not-a-url" } }));
+
+      await expect(client.createResolvedNoteShare("note-1")).rejects.toThrow(
+        "Rote frontend URL is unavailable"
+      );
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("should reject a configured URL that is not an origin", async () => {
+      fetchSpy.mockResolvedValueOnce(
+        mockResponse({ site: { frontendUrl: "https://notes.example.test/base" } })
+      );
+
+      await expect(client.createResolvedNoteShare("note-1")).rejects.toThrow(
+        "Rote frontend URL is unavailable"
+      );
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("should present an active share with a null URL when frontend config is unavailable", async () => {
+      fetchSpy
+        .mockResolvedValueOnce(mockResponse(share))
+        .mockResolvedValueOnce(mockResponse({ site: { frontendUrl: "" } }));
+
+      expect(await client.getNoteShareState("note-1")).toEqual({
+        active: true,
+        ...share,
+        url: null,
+      });
     });
   });
 
