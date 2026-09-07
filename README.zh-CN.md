@@ -95,6 +95,8 @@ rote attachment upload <noteId> ./photo.jpg ./clip.mp4
 rote attachment delete <attachmentId>
 ```
 
+`rote share status` 只报告分享是否启用及创建时间，不输出 bearer token 或 URL。只有在明确需要链接时才使用 `rote share create`。
+
 ### 反应操作
 
 ```bash

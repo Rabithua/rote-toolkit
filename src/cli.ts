@@ -393,7 +393,10 @@ shareCommand
   .argument("<noteId>", "note ID")
   .action(async (noteId: string) => {
     const state = await new RoteClient().getNoteShareState(noteId);
-    console.log(JSON.stringify(state, null, 2));
+    const displayState = state.active
+      ? { active: true, createdAt: state.createdAt }
+      : { active: false };
+    console.log(JSON.stringify(displayState, null, 2));
   });
 
 shareCommand
