@@ -29,10 +29,16 @@ describe.skipIf(skip)("RoteClient Integration Tests", () => {
   });
 
   afterAll(async () => {
-    // Cleanup: delete test note if created
     if (createdNoteId) {
       try {
         await client.deleteNote(createdNoteId);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+    if (createdArticleId) {
+      try {
+        await client.deleteArticle(createdArticleId);
       } catch {
         // Ignore cleanup errors
       }
@@ -59,6 +65,9 @@ describe.skipIf(skip)("RoteClient Integration Tests", () => {
 
     it("should update a note", async () => {
       expect(createdNoteId).not.toBeNull();
+
+      const current = await client.getNote(createdNoteId!);
+      expect(current.id).toBe(createdNoteId);
 
       const updated = await client.updateNote({
         noteId: createdNoteId!,
@@ -126,6 +135,54 @@ describe.skipIf(skip)("RoteClient Integration Tests", () => {
       });
 
       expect(Array.isArray(articles)).toBe(true);
+    });
+
+    it("should get, update, and delete an article", async () => {
+      expect(createdArticleId).not.toBeNull();
+
+      const current = await client.getArticle(createdArticleId!);
+      expect(current.id).toBe(createdArticleId);
+
+      const updated = await client.updateArticle({
+        articleId: createdArticleId!,
+        content: "# Updated integration article",
+      });
+      expect(updated.content).toContain("Updated integration article");
+
+      const deleted = await client.deleteArticle(createdArticleId!);
+      expect(deleted.id).toBe(createdArticleId);
+      createdArticleId = null;
+    });
+  });
+
+  describe("Note shares", () => {
+    it("should create, read anonymously, and revoke a share link", async () => {
+      const note = await client.createNote({
+        content: `Share integration note - ${Date.now()}`,
+        isPublic: false,
+      });
+
+      try {
+        expect(await client.getNoteShareState(note.id)).toEqual({ active: false });
+
+        const created = await client.createResolvedNoteShare(note.id);
+        expect(created.url).toContain(`/s/${created.token}`);
+
+        const anonymous = await fetch(
+          `${API_URL!.replace(/\/$/, "")}/v2/api/shares/${encodeURIComponent(created.token)}`,
+        );
+        expect(anonymous.status).toBe(200);
+
+        await client.revokeNoteShare(note.id);
+        expect(await client.getNoteShareState(note.id)).toEqual({ active: false });
+        expect(
+          await fetch(
+            `${API_URL!.replace(/\/$/, "")}/v2/api/shares/${encodeURIComponent(created.token)}`,
+          ),
+        ).toHaveProperty("status", 404);
+      } finally {
+        await client.deleteNote(note.id);
+      }
     });
   });
 

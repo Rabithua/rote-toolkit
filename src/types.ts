@@ -51,6 +51,15 @@ export interface CreateArticleInput {
   content: string;
 }
 
+export interface UpdateArticleInput {
+  articleId: string;
+  content: string;
+}
+
+export interface RoteArticleDetails extends RoteArticle {
+  note?: RoteNote | null;
+}
+
 export interface RoteReaction {
   id: string;
   type: string;
@@ -178,11 +187,99 @@ export interface BatchDeleteAttachmentsInput {
 }
 
 export interface BatchDeleteAttachmentsResponse {
-  deleted: number;
-  failed: number;
+  count: number;
 }
 
 export interface UpdateAttachmentsSortOrderInput {
   noteId: string;
   attachmentIds: string[];
+}
+
+export type AttachmentMediaKind = "image" | "video" | "livePhoto";
+
+export interface PresignAttachmentFileInput {
+  filename?: string;
+  contentType: string;
+  size: number;
+  mediaKind?: AttachmentMediaKind;
+  compressedContentType?: "image/jpeg" | "image/webp";
+  pairedVideo?: {
+    filename?: string;
+    contentType: string;
+    size: number;
+  };
+  poster?: {
+    contentType: "image/jpeg";
+    size: number;
+  };
+}
+
+export interface PresignAttachmentUploadsInput {
+  files: PresignAttachmentFileInput[];
+}
+
+export interface PresignedUploadTarget {
+  key: string;
+  putUrl: string;
+  url: string;
+  contentType: string;
+}
+
+export interface PresignedAttachmentItem {
+  uuid: string;
+  expiresAt?: string;
+  original: PresignedUploadTarget;
+  compressed?: PresignedUploadTarget;
+  pairedVideo?: PresignedUploadTarget;
+  poster?: PresignedUploadTarget;
+}
+
+export interface PresignAttachmentUploadsResponse {
+  items: PresignedAttachmentItem[];
+  reservationId?: string;
+  expiresAt?: string;
+}
+
+export interface FinalizeAttachmentInput {
+  clientId?: string;
+  uuid: string;
+  originalKey: string;
+  compressedKey?: string;
+  posterKey?: string;
+  pairedVideoKey?: string;
+  pairedVideoSize?: number;
+  pairedVideoMimetype?: string;
+  pairedVideoFilename?: string;
+  size?: number;
+  mimetype?: string;
+  mediaKind?: AttachmentMediaKind;
+  hash?: string;
+  noteId?: string;
+}
+
+export interface FinalizeAttachmentUploadsInput {
+  attachments: FinalizeAttachmentInput[];
+  noteId?: string;
+}
+
+export interface RoteAttachment {
+  id: string;
+  roteid?: string | null;
+  url: string;
+  compressUrl?: string | null;
+  posterUrl?: string | null;
+  details?: Record<string, unknown>;
+}
+
+export interface NoteShareLink {
+  token: string;
+  createdAt: string;
+}
+
+export type NoteShareState =
+  | { active: false }
+  | { active: true; token: string; createdAt: string; url: string | null };
+
+export interface ResolvedNoteShareLink extends NoteShareLink {
+  url: string;
 }

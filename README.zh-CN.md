@@ -16,6 +16,7 @@ Rote Toolkit 是一个基于 TypeScript 的增强工具包，主要用于在终�
 ## 安装
 
 > 要求 Node.js v18 或更高版本。
+> Rote Toolkit 0.6.0 的分享链接接口要求 Rote Server 2.4.0 或更高版本。
 
 ```bash
 npm install -g rote-toolkit
@@ -50,6 +51,9 @@ rote add "实现了一个新的前端组件" -t "代码,前端,React" --public -
 # 绑定到文章
 rote add "章节总结" --article-id "<articleId>"
 
+# 按 ID 获取一条笔记
+rote get <noteId>
+
 # 搜索笔记
 rote search "MCP" --limit 20
 
@@ -69,9 +73,29 @@ rote explore --limit 20
 # 创建文章
 rote article add "# 我的文章内容"
 
+# 获取、更新或删除文章
+rote article get <articleId>
+rote article update <articleId> "# 修改后的内容"
+rote article delete <articleId>
+
 # 列出文章
 rote articles --limit 20 --skip 0 -k "关键词"
 ```
+
+### 分享链接与附件
+
+```bash
+# 以下命令要求 SHAREROTE 权限
+rote share status <noteId>
+rote share create <noteId>
+rote share revoke <noteId>
+
+# 只读取明确传入的图片/视频路径；Live Photo 组合上传使用 SDK 底层接口
+rote attachment upload <noteId> ./photo.jpg ./clip.mp4
+rote attachment delete <attachmentId>
+```
+
+`rote share status` 只报告分享是否启用及创建时间，不输出 bearer token 或 URL。只有在明确需要链接时才使用 `rote share create`。
 
 ### 反应操作
 
@@ -140,6 +164,8 @@ await client.updateNote({
   archived: false,
 });
 
+const current = await client.getNote("<noteId>");
+
 // 搜索笔记
 const results = await client.searchNotes({
   keyword: "MCP",
@@ -157,6 +183,9 @@ const explore = await client.exploreNotes({ limit: 20 });
 // 文章操作
 const article = await client.createArticle({ content: "# 文章" });
 const articles = await client.listArticles({ limit: 20 });
+const articleDetails = await client.getArticle(article.id);
+await client.updateArticle({ articleId: article.id, content: "# 修改后的内容" });
+await client.deleteArticle(article.id);
 
 // 批量操作
 const batchNotes = await client.batchGetNotes({ ids: ["id1", "id2"] });
@@ -179,9 +208,33 @@ const settings = await client.getSettings();
 await client.updateSettings({ allowExplore: true });
 
 // 附件操作
+const upload = await client.presignAttachmentUploads({
+  files: [{ filename: "photo.jpg", contentType: "image/jpeg", size: 1234 }],
+});
+// 仅在预约的上传凭证过期时刷新。
+if (upload.reservationId && upload.expiresAt && Date.parse(upload.expiresAt) <= Date.now()) {
+  await client.refreshAttachmentUploadReservation(upload.reservationId);
+}
+await client.finalizeAttachmentUploads({
+  noteId: "<noteId>",
+  attachments: [{
+    uuid: upload.items[0].uuid,
+    originalKey: upload.items[0].original.key,
+    mimetype: "image/jpeg",
+    size: 1234,
+  }],
+});
+await client.deleteAttachment("<attachmentId>");
 await client.batchDeleteAttachments({ ids: ["att1", "att2"] });
 await client.updateAttachmentsSortOrder({ noteId: "<noteId>", attachmentIds: ["att1", "att2"] });
+
+// 笔记分享链接（要求 SHAREROTE 权限）
+const shareState = await client.getNoteShareState("<noteId>");
+const share = await client.createResolvedNoteShare("<noteId>");
+await client.revokeNoteShare("<noteId>");
 ```
+
+`createResolvedNoteShare` 会先检查 `/v2/api/site/status`；当前端 URL 缺失或非法时，不创建 bearer 链接并直接失败。SDK 底层附件接口支持 Live Photo 组合；CLI 只会读取显式传给 `attachment upload` 的文件。
 
 ## MCP 模式使用指南
 
@@ -241,7 +294,7 @@ rote-mcp
 ### 版本建议
 
 - 追踪最新版：`rote-toolkit@latest`
-- 需要稳定可复现：固定版本号，例如 `rote-toolkit@0.5.0`
+- 需要稳定可复现：固定版本号，例如 `rote-toolkit@0.6.0`
 
 ### 常见问题
 
@@ -252,15 +305,22 @@ rote-mcp
 
 #### 笔记
 - `rote_create_note` - 创建笔记
+- `rote_get_note` - 按 ID 获取笔记
 - `rote_update_note` - 更新笔记
 - `rote_delete_note` - 删除笔记
 - `rote_search_notes` - 搜索笔记
 - `rote_list_notes` - 列出笔记
 - `rote_explore_notes` - 获取探索页笔记（无需授权）
 - `rote_batch_get_notes` - 批量获取笔记（最多 100 条）
+- `rote_get_note_share` - 获取笔记分享状态
+- `rote_create_note_share` - 创建或返回笔记分享链接
+- `rote_revoke_note_share` - 撤销笔记分享链接
 
 #### 文章
 - `rote_create_article` - 创建文章
+- `rote_get_article` - 按 ID 获取文章
+- `rote_update_article` - 更新文章
+- `rote_delete_article` - 删除文章
 - `rote_list_articles` - 列出文章
 - `rote_get_article_by_note` - 通过笔记获取关联文章
 
@@ -283,8 +343,11 @@ rote-mcp
 - `rote_update_settings` - 更新用户设置
 
 #### 附件
+- `rote_delete_attachment` - 删除单个附件
 - `rote_batch_delete_attachments` - 批量删除附件（最多 100 个）
 - `rote_update_attachments_sort` - 更新附件排序
+
+stdio MCP 不提供接收本地文件路径的工具。端到端文件上传请使用显式 CLI 命令，或直接使用 SDK 附件接口。
 
 ## 本地开发
 
@@ -304,7 +367,7 @@ npm run dev -- --help
 npm login
 ```
 
-自动构建 + 自动升级版本 + 发布：
+在 `main` 上更新版本、测试、构建、发布、打标签并推送：
 
 ```bash
 npm run release:patch
@@ -321,7 +384,9 @@ npm run release:major
 
 1. 检查 git 工作区是否干净
 2. 检查 npm 登录状态
-3. `npm run build`
-4. `npm pack --dry-run`
-5. `npm version <patch|minor|major>`
-6. `npm publish`
+3. 更新或确认目标版本
+4. 执行测试与构建
+5. 执行 `npm pack --dry-run`
+6. 提交版本文件变更
+7. 发布到 npm
+8. 创建并推送 annotated tag
