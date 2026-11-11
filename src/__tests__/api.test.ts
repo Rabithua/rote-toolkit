@@ -354,33 +354,81 @@ describe("RoteClient", () => {
   });
 
   describe("tags", () => {
-    it("should get tags", async () => {
-      const mockTags = [
-        { tag: "ai", count: 10 },
-        { tag: "notes", count: 5 },
-      ];
-      fetchSpy.mockResolvedValueOnce(mockResponse(mockTags));
+    it("should normalize server `{ name, count }` items to `{ tag, count }`", async () => {
+      fetchSpy.mockResolvedValueOnce(
+        mockResponse([
+          { name: "ai", count: 10 },
+          { name: "notes", count: 5 },
+        ])
+      );
 
       const result = await client.getTags();
 
-      expect(result).toEqual(mockTags);
+      expect(result).toEqual([
+        { tag: "ai", count: 10 },
+        { tag: "notes", count: 5 },
+      ]);
+    });
+
+    it("should tolerate legacy `{ tag, count }` items", async () => {
+      fetchSpy.mockResolvedValueOnce(
+        mockResponse([{ tag: "ai", count: 10 }])
+      );
+
+      const result = await client.getTags();
+
+      expect(result).toEqual([{ tag: "ai", count: 10 }]);
+    });
+
+    it("should drop items without any tag name", async () => {
+      fetchSpy.mockResolvedValueOnce(
+        mockResponse([
+          { name: "ai", count: 10 },
+          { count: 3 },
+        ])
+      );
+
+      const result = await client.getTags();
+
+      expect(result).toEqual([{ tag: "ai", count: 10 }]);
     });
   });
 
   describe("heatmap", () => {
-    it("should get heatmap", async () => {
-      const mockHeatmap = [
-        { date: "2024-01-01", count: 5 },
-        { date: "2024-01-02", count: 3 },
-      ];
-      fetchSpy.mockResolvedValueOnce(mockResponse(mockHeatmap));
+    it("should normalize a `{ date: count }` map to HeatmapDay[] sorted by date", async () => {
+      fetchSpy.mockResolvedValueOnce(
+        mockResponse({ "2024-01-03": 1, "2024-01-01": 5, "2024-01-02": 3 })
+      );
 
       const result = await client.getHeatmap({
         startDate: "2024-01-01",
         endDate: "2024-01-31",
       });
 
-      expect(result).toEqual(mockHeatmap);
+      expect(result).toEqual([
+        { date: "2024-01-01", count: 5 },
+        { date: "2024-01-02", count: 3 },
+        { date: "2024-01-03", count: 1 },
+      ]);
+    });
+
+    it("should tolerate legacy array responses and sort by date", async () => {
+      fetchSpy.mockResolvedValueOnce(
+        mockResponse([
+          { date: "2024-01-02", count: 3 },
+          { date: "2024-01-01", count: 5 },
+        ])
+      );
+
+      const result = await client.getHeatmap({
+        startDate: "2024-01-01",
+        endDate: "2024-01-31",
+      });
+
+      expect(result).toEqual([
+        { date: "2024-01-01", count: 5 },
+        { date: "2024-01-02", count: 3 },
+      ]);
     });
 
     it("should throw error when dates are missing", async () => {
@@ -398,7 +446,7 @@ describe("RoteClient", () => {
 
   describe("statistics", () => {
     it("should get statistics", async () => {
-      const mockStats = { roteCount: 100, attachmentCount: 50 };
+      const mockStats = { roteCount: 100, attachmentCount: 50, articleCount: 7 };
       fetchSpy.mockResolvedValueOnce(mockResponse(mockStats));
 
       const result = await client.getStatistics();
