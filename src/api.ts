@@ -31,6 +31,7 @@ import type {
   RoteSettings,
   RoteStatistics,
   RoteTag,
+  RoteTagItem,
   SearchNotesInput,
   ToolkitConfig,
   UpdateAttachmentsSortOrderInput,
@@ -356,9 +357,16 @@ export class RoteClient {
 
   async getTags(): Promise<RoteTag[]> {
     const params = new URLSearchParams({ openkey: this.openKey });
-    return this.request<RoteTag[]>(
+    const raw = await this.request<RoteTagItem[]>(
       `/v2/api/openkey/tags?${params.toString()}`,
     );
+    // The server returns `{ name, count }` items. Normalize them to the
+    // declared RoteTag `{ tag, count }` shape, tolerating legacy `{ tag }`
+    // responses, and drop items without any tag name.
+    return raw.flatMap((item) => {
+      const tag = item.name ?? item.tag;
+      return typeof tag === "string" ? [{ tag, count: item.count }] : [];
+    });
   }
 
   async getHeatmap(input: GetHeatmapInput): Promise<HeatmapDay[]> {
@@ -377,9 +385,18 @@ export class RoteClient {
       endDate: input.endDate,
     });
 
-    return this.request<HeatmapDay[]>(
+    const raw = await this.request<Record<string, number> | HeatmapDay[]>(
       `/v2/api/openkey/heatmap?${params.toString()}`,
     );
+    // The server returns a `{ "YYYY-MM-DD": count }` map. Normalize it to the
+    // declared HeatmapDay[] shape, sorted by date on every branch. Tolerate
+    // array responses for compatibility.
+    if (Array.isArray(raw)) {
+      return [...raw].sort((a, b) => a.date.localeCompare(b.date));
+    }
+    return Object.entries(raw)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 
   async getStatistics(): Promise<RoteStatistics> {

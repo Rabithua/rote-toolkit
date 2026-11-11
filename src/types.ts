@@ -157,6 +157,13 @@ export interface RoteTag {
   count: number;
 }
 
+/** Wire shape returned by GET /v2/api/openkey/tags. */
+export interface RoteTagItem {
+  name?: string;
+  tag?: string;
+  count: number;
+}
+
 export interface GetHeatmapInput {
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
@@ -170,6 +177,7 @@ export interface HeatmapDay {
 export interface RoteStatistics {
   roteCount: number;
   attachmentCount: number;
+  articleCount: number;
 }
 
 export interface RoteSettings {

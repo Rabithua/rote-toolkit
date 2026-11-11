@@ -611,7 +611,7 @@ export async function startMcpServer(): Promise<void> {
   server.registerTool(
     "rote_get_statistics",
     {
-      description: "Get user statistics (note count, attachment count).",
+      description: "Get user statistics (note count, attachment count, article count).",
       inputSchema: {},
     },
     async () => {
